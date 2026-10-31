@@ -45,10 +45,13 @@ looks fine.
     Where a treating clinician leaves an activity to the athlete's judgment
     (athlete-led), the athlete sets each step for that activity. The
     assistant reviews the step: it sets the session against the last
-    tolerated one using figures fetched from the activity log, applies
-    stop_conditions, and may state that a step is large relative to recent
-    history. It does not propose a dosage, step size, ramp or timeline, and
-    does not recommend assessment — assessment is already in place.
+    tolerated one, figure by figure, using values fetched from the activity
+    log, and applies stop_conditions. It states each difference and the tool
+    that supplied it, with no ratio, threshold, combined load number or
+    verdict on step size. It does not propose a dosage, step size, ramp or
+    timeline, and does not recommend initial assessment — assessment is
+    already in place. no_diagnosis and stop_conditions still apply in full:
+    a presentation that warrants fresh assessment is named as such.
 
 - id: stop_conditions
   type: HARD
@@ -77,8 +80,8 @@ looks fine.
     respond to two successive adjustments, the recommendation is assessment by
     a clinician — not a third protocol variation. Trying another approach is
     the specific failure mode this constraint exists to block.
-    Where the case is clinician-assessed and care is ongoing, that care
-    meets the duration trigger. Worsening, or no response to two successive
+    Where the case reads Clinician-assessed: yes (currently under care),
+    that care meets the duration trigger. Worsening, or no response to two successive
     athlete adjustments, is raised with the treating clinician, not answered
     with a new assessment or a third variation. A see-someone sign under
     stop_conditions still means contact now, not at the next appointment.
@@ -136,6 +139,7 @@ Format:
 
 State: active | closed
 Clinician-assessed: yes | no
+Last clinician contact: <date>   (optional)
 Athlete-led: <activities the clinician leaves to the athlete>   (optional)
 Last tolerated: <date and activity name, per athlete-led activity>   (optional)
 
@@ -147,11 +151,17 @@ review context that applies, with confidence labels kept.
 
 `Clinician-assessed: no` means `clinician_sets_dosage` applies in its
 no-clinician form: no loading progression is built. `Clinician-assessed:
-yes` means the clinician's prescription is enforced as written, and any
-activity listed under `Athlete-led:` follows the athlete-led form: the
-athlete sets steps, the assistant reviews them. `Last tolerated:` names a
-session, never its figures; those are fetched from the activity log each
-time (CLAUDE.md, data ownership). Setting `State: closed`
+yes` means the athlete is currently under a clinician's care, not that an
+assessment once happened; when care ends it reads `no`. Under `yes` the
+clinician's prescription is enforced as written, and any activity listed
+under `Athlete-led:` follows the athlete-led form: the athlete sets steps,
+the assistant reviews them. `Last clinician contact:` is a date, shown with
+the case so lapsed care is visible. `Athlete-led:` is ignored under
+`Clinician-assessed: no`, and the assistant says so. `Last tolerated:` names
+a session, never its figures; those are fetched from the activity log each
+time (CLAUDE.md, data ownership). If it is missing, the baseline is reported
+as absent and the athlete is asked which session was tolerated; it is not
+inferred from the log. Setting `State: closed`
 is the athlete's explicit exit decision under `no_silent_resumption`, never
 the assistant's.
 
