@@ -1,4 +1,4 @@
-# RULES v0.4
+# RULES v0.5
 
 Full rules layer. Nothing is deleted; rules activate by tag.
 
@@ -8,6 +8,10 @@ activation:
   discipline:<name>   — loads when that discipline is in the dossier
   state:rehab         — loads only in rehab mode (see REHAB.md)
   dossier:<field>     — loads only when that dossier field is populated
+  dossier:<field>=<v> — loads only when that dossier field holds value v
+  dossier:<field> within <N>d
+                      — loads only when the date in that dossier field is
+                        between today and N days from today
   dormant             — retained, not currently reachable; reason stated
   AND / OR / NOT      — combine the above; NOT state:rehab means the rule
                         does not load while rehab mode is active
@@ -18,8 +22,16 @@ activation:
 prescriptive rules from being read at all in rehab, so that subordination
 never has to be argued. Removing it does not make a rule apply in rehab.
 
-Current dossier disciplines: cycling, climbing, strength, running (minor).
-Swimming rules are retained as `dormant`.
+Disciplines, goal and events are read from `DOSSIER.md`. Nothing in this file
+assumes a particular athlete: a rule that depends on the athlete's profile is
+gated on the dossier field that declares it. `DOSSIER.template.md` lists which
+rules each field activates.
+
+Activation configures the athlete, never the evidence stance. The rules that
+encode the seven `CLAUDE.md` positions load for every athlete they concern —
+`activation: always`, or gated only by the discipline the position is about.
+No dossier field switches a position off, and no rule may be gated on a
+setting whose purpose is to do so.
 
 `type:` HARD (do not override) · SOFT (default, overridable) ·
 BRANCH (do not decide, ask) · DISCLOSURE (state when relevant)
@@ -79,11 +91,12 @@ decided; it is removed when a `resolution:` replaces it.
   statement: >
     Three axes are tracked separately and never collapsed into one number
     for decision purposes:
-      1. systemic/cardiometabolic  (cycling primary, running minor)
+      1. systemic/cardiometabolic  (cycling, running, swimming)
       2. finger/upper-limb mechanical  (climbing, hangboard, pulling)
       3. lower-limb tendon/structural  (cycling volume, strength, running)
     A combined figure may be shown for trend context only, labeled
-    systemic-only.
+    systemic-only. An axis with no declared discipline feeding it is empty,
+    and is reported as not applicable rather than as zero load.
   source: 01-endurance.md SECTION 4, 3.2, cross-cutting recommendations 3, 4; 02-climbing.md A1, recommendation 1
   judgment_call: >
     The three-axis taxonomy is a system design. The reviews establish that
@@ -117,8 +130,7 @@ decided; it is removed when a `resolution:` replaces it.
   source: 02-climbing.md A3, recommendation 5
 
 - id: swim_load_unvalidated
-  activation: dormant
-  reason: swimming not in current dossier
+  activation: discipline:swimming
   type: DISCLOSURE
   confidence: CONSENSUS
   statement: Swim TSS largely unvalidated; anchor to CSS pace.
@@ -189,7 +201,7 @@ decided; it is removed when a `resolution:` replaces it.
     for revisit.
 
 - id: strength_priority_order
-  activation: always
+  activation: discipline:cycling AND discipline:climbing
   type: SOFT
   confidence: CONSENSUS on rationale, CONTESTED on prevention magnitude
   statement: >
@@ -202,6 +214,9 @@ decided; it is removed when a `resolution:` replaces it.
          already supplied it
     Cycling and lower-body strength are synergistic, not competing
     (concurrent +8.4% mean power vs +3.7% endurance-only).
+    The order is derived for the cycling-plus-climbing combination and does
+    not load without both. For other combinations no priority order is
+    supplied; strength_dose_target still applies.
   source: 02-climbing.md recommendation 7, B1, B2, B3
 
 - id: antagonist_work_is_rationale_based
@@ -621,7 +636,8 @@ quality session, not how many of the week's hours are hard.
   caveat: >
     Much SIT and HIIT effect-size data rests on 2-10 week studies in
     sedentary or recreationally active subjects. Transfer to a trained
-    masters cyclist is assumed, not demonstrated.
+    cyclist, and to masters athletes in particular, is assumed, not
+    demonstrated.
   source: 03-session-prescription.md A1
 
 - id: time_near_vo2max_is_a_convention
@@ -675,7 +691,7 @@ quality session, not how many of the week's hours are hard.
     (~5.0 mL/kg/min) versus ~13% (~6.5) for 4x4-min, between-group p=0.08.
     Useful as the floor in a compressed week, and as the honest answer to
     "what is the least that works". Subjects were inactive overweight men
-    over 10 weeks — the gap to a trained masters cyclist is large.
+    over 10 weeks — the gap to a trained cyclist is large.
   source: 03-session-prescription.md A3
 
 - id: anchor_short_intervals_to_power
@@ -780,8 +796,8 @@ quality session, not how many of the week's hours are hard.
   statement: >
     Strength and hypertrophy are largely preserved when endurance is <=3
     sessions/week and sessions are separated. Interference was found with
-    running but not cycling, so this athlete is comparatively protected on
-    the discipline that carries the volume. Sequence is not the leading
+    running but not cycling, so an athlete whose endurance volume is
+    cycling is comparatively protected. Sequence is not the leading
     driver of interference over blocks of 8 weeks or more. If strength
     stalls despite separation, reduce concurrent endurance frequency before
     reducing the strength dose — see interference_is_smaller_than_assumed.
@@ -815,7 +831,7 @@ quality session, not how many of the week's hours are hard.
     concurrent_endurance_frequency_cap)
 ```
 
-## 7. RUNNING (minor discipline)
+## 7. RUNNING
 
 ```yaml
 - id: run_single_session_spike_cap
@@ -860,6 +876,7 @@ quality session, not how many of the week's hours are hard.
   type: SOFT
   confidence: PRACTITIONER (mechanistic extrapolation, no injury-outcome data)
   statement: >
+    Each item applies only when the disciplines it names are in the dossier.
     - Never precede hard bouldering or max finger work with fatiguing
       pulling or hangboard work.
     - At least 48 h between hard finger sessions.
@@ -873,7 +890,7 @@ quality session, not how many of the week's hours are hard.
   source: 02-climbing.md B5, recommendation 8
 
 - id: interference_is_smaller_than_assumed
-  activation: always
+  activation: discipline:cycling OR discipline:running
   type: DISCLOSURE
   confidence: CONSENSUS
   statement: >
@@ -1086,11 +1103,17 @@ section 4; neither is reopened here.
   source: 03-session-prescription.md D2
 ```
 
-## 10. LONGEVITY-LED DEFAULTS
+## 10. GOAL AND EVENT DEFAULTS
+
+Longevity defaults load on `dossier:goal=longevity`; taper rules on
+`dossier:event_date`. With no goal declared, none of the goal-gated rules
+load and `goal_type_branch` asks instead. `tid_flexible` encodes `CLAUDE.md`
+position 2 and is gated only by endurance discipline, never by goal.
+`detraining_curve` is physiology and loads for every athlete.
 
 ```yaml
 - id: crf_is_the_lever_not_the_method
-  activation: always
+  activation: dossier:goal=longevity
   type: DISCLOSURE
   confidence: CONSENSUS
   statement: >
@@ -1100,7 +1123,7 @@ section 4; neither is reopened here.
   source: 01-endurance.md 6.1, cross-cutting recommendation 6
 
 - id: zone2_not_privileged
-  activation: always
+  activation: dossier:goal=longevity
   type: DISCLOSURE
   confidence: PRACTITIONER
   statement: >
@@ -1109,7 +1132,7 @@ section 4; neither is reopened here.
   source: 01-endurance.md 6.2
 
 - id: tid_flexible
-  activation: discipline:cycling
+  activation: discipline:cycling OR discipline:running OR discipline:swimming
   type: SOFT
   confidence: CONTESTED
   statement: >
@@ -1118,7 +1141,7 @@ section 4; neither is reopened here.
   source: 01-endurance.md 2.1, 2.2, 2.4, cross-cutting recommendation 2
 
 - id: no_extreme_volume_push
-  activation: always
+  activation: dossier:goal=longevity
   type: SOFT
   confidence: CONTESTED
   statement: >
@@ -1129,14 +1152,14 @@ section 4; neither is reopened here.
   source: 01-endurance.md 6.5, 6.6
 
 - id: no_taper_by_default
-  activation: always
+  activation: dossier:goal=longevity AND NOT dossier:event_date within 21d
   type: SOFT
   confidence: CONSENSUS
   statement: Longevity-led training needs no taper or peak.
   source: 01-endurance.md 6.6
 
 - id: taper_when_event_present
-  activation: dossier:event_within_3_weeks
+  activation: dossier:event_date within 21d
   type: SOFT
   confidence: CONSENSUS
   statement: >
@@ -1217,6 +1240,23 @@ section 4; neither is reopened here.
     bone stress injury risk. If intake is not keeping pace with rising load,
     the load does not rise. Stop condition, not an optimisation.
   source: 01-endurance.md 7.6, 7-recommendation 6
+
+- id: goal_type_branch
+  activation: NOT dossier:goal
+  type: BRANCH
+  statement: >
+    No goal is declared in the dossier. The goal-gated rules —
+    crf_is_the_lever_not_the_method, zone2_not_privileged,
+    no_extreme_volume_push, no_taper_by_default — do not load. Ask the
+    athlete for their goal before any recommendation that depends on it. Do
+    not infer the goal from training data, and do not default to longevity:
+    an unanswered field is unanswered, not longevity.
+    Recommendations that do not depend on goal proceed; the rules encoding
+    the CLAUDE.md positions load regardless.
+  judgment_call: >
+    Architectural, not derived from any review. Goal moved from CLAUDE.md
+    to the dossier when the repo was generalised; this rule keeps an empty
+    goal field from being silently read as any particular goal.
 
 - id: sleep_as_modifier
   activation: dossier:sleep_logged

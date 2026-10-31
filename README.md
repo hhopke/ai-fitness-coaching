@@ -1,18 +1,49 @@
 # ai-fitness-coaching
 
-Personal training assistant for a single athlete. Cycling, climbing and
-bouldering, strength, and low-intensity running. Longevity-led, performance
-secondary.
+Evidence-checked training assistant for one athlete per copy, run as a
+Claude Code skill. The rules layer was checked against systematic reviews and
+meta-analyses, and holds the positions that survived — including several that
+contradict standard coaching practice.
 
-Not a product. It does not generalise, scale, or serve other athletes.
+Not a coaching product. Copy the repo, describe yourself in `DOSSIER.md`, and
+the rules for your disciplines and goal switch on.
 
 Read [CLAUDE.md](CLAUDE.md) before proposing anything — it holds the seven
-non-negotiable positions that the rest of the repo exists to enforce.
+non-negotiable positions that the rest of the repo exists to enforce. They
+hold in every copy: the dossier configures the athlete, never the evidence
+stance.
+
+## Setup
+
+1. Copy `DOSSIER.template.md` to `DOSSIER.md` and fill it in by hand. The
+   template is the setup guide: each field says which rules it activates.
+   Empty is a valid answer; a guess is not.
+2. Connect the intervals.icu MCP server and put your athlete id in the
+   dossier.
+3. Run `/training daily` or `/training weekly`.
+
+## Coverage
+
+**Covered.** Cycling, running and swimming, multisport load combination and
+taper (reviews `01`, `03`); climbing and bouldering (`02`); resistance
+training (`02`, `03`, `04`). Triathletes are reasonably served by review `01`.
+
+Unevenly covered, stated so it is not mistaken for full coverage:
+- Swimming carries one dedicated rule; the rest of its coverage is shared
+  endurance rules. Review `01` covers more than `RULES.md` encodes.
+- Interval prescription, progression and plateau logic is written for
+  cycling and does not load for running or swimming.
+- The goal-specific defaults exist for a longevity goal only. A performance
+  goal gets the discipline rules and no goal-specific ones.
+
+**Not covered.** Rowing, team sports, pure strength or powerlifting goals,
+youth athletes. These get no rules, and the assistant says so rather than
+filling the gap.
 
 ## Disclaimer
 
-**Not medical advice.** This is a personal rules layer for one athlete, not
-guidance for anyone else. It does not diagnose, and it defers to a clinician
+**Not medical advice.** This is a rules layer an athlete configures for
+themselves, not individual guidance. It does not diagnose, and it defers to a clinician
 on anything injury-related.
 
 **The evidence base is only partly verified.** Reviews `01`-`03` come from a
@@ -52,7 +83,7 @@ generically.
 
 ## Status
 
-Rules layer and workflow are written. `RULES.md` is at v0.4 — 73 rules, every
+Rules layer and workflow are written. `RULES.md` is at v0.5 — 74 rules, every
 one carrying `source:` back to a review section or `judgment_call:` naming the
 position as this repo's rather than a review finding.
 
@@ -63,11 +94,17 @@ contradiction was resolved by splitting
 `hypertrophy_progression_is_volume_and_effort` and
 `no_fixed_percentage_progression`. Details in `reviews/README.md`.
 
+v0.5 generalises the repo to one athlete per copy. Disciplines, goal and
+events moved from `CLAUDE.md` into the dossier; longevity defaults load on
+`goal: longevity`, taper rules on `event_date`, and `goal_type_branch` asks
+when no goal is declared.
+
 Outstanding before first use:
 
-- **Fill in `DOSSIER.md` by hand.** This is the blocker. Roughly a third of the
-  rules do not activate without it, and two empty fields each gate a HARD rule:
-  bone stress injury history and the fuelling question. Empty is a valid answer,
+- **Fill in `DOSSIER.md` by hand.** This is the blocker. Without it no
+  discipline or goal rules load — only the nine always-on rules and
+  `goal_type_branch` — and two empty fields each gate a HARD rule: bone
+  stress injury history and the fuelling question. Empty is a valid answer,
   a guess is not.
 - **Rehab state** is read from `private/rehab-case.md`. While a case is
   active, both `training` skill modes hand off to `REHAB.md`, and the seven

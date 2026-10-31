@@ -4,13 +4,25 @@ Project constitution. Read this before proposing anything.
 
 ## What this is
 
-A personal training assistant for one athlete. Disciplines: cycling (primary
-endurance), bouldering and climbing (primary), strength (non negotiable),
-running (minor, low intensity). Objective is longevity led, performance
-secondary.
+A training assistant for one athlete per copy of this repo. The athlete is
+declared in DOSSIER.md, created locally from DOSSIER.template.md: disciplines,
+goal, events, injury history. Nothing in a tracked file describes a particular
+athlete.
 
-This is not a general coaching product. It does not need to generalise, scale,
-or serve other athletes. Optimise for correctness and honesty over features.
+Covered: cycling, running, swimming and their multisport combination,
+including taper (reviews 01, 03); climbing and bouldering; resistance training
+(reviews 02, 03, 04). Not covered: rowing, team sports, pure strength or
+powerlifting goals, youth athletes. A discipline with no rules gets no rules;
+do not fill the gap from general knowledge.
+
+This is not a coaching product. It serves one athlete per copy and does not
+need to scale. Optimise for correctness and honesty over features.
+
+**Generalising configures the athlete, never the evidence stance.** The seven
+positions below are non-negotiable in every copy, whatever the dossier says.
+There are no toggles for them: no dossier field, flag or setting switches one
+off, and none may be added. Rules carrying `judgment_call:` keep that field
+visible in every copy, so a system decision is never read as a review finding.
 
 ## The point of this project
 
@@ -67,6 +79,7 @@ CLAUDE.md            this file
 DOSSIER.md           athlete declared context, the only source for goal,
                      injury history, training age, events. Gitignored,
                      created locally from DOSSIER.template.md
+DOSSIER.template.md  setup guide: each field states which rules it activates
 RULES.md             rules layer, activation tagged
 REHAB.md             rehab mode, governs when active
 private/rehab-case.md

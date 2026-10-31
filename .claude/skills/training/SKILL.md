@@ -1,6 +1,6 @@
 ---
 name: training
-description: Personal training assistant for a single athlete — cycling, climbing and bouldering, strength, minor running. Runs two separate modes. daily answers what to train today from recent load, wellness, and finger-session spacing. weekly plans or reviews a week — 28-day strength dose, per-axis load distribution, session ordering conflicts. Both check rehab state first and hand off to REHAB.md when it is active. Use when asked what to train today, to plan or review a training week, or to apply the rules layer in RULES.md.
+description: Training assistant for the one athlete declared in DOSSIER.md — disciplines and goal come from the dossier; rules exist for cycling, running, swimming, climbing and bouldering, and strength. Runs two separate modes. daily answers what to train today from recent load, wellness, and finger-session spacing. weekly plans or reviews a week — 28-day strength dose, per-axis load distribution, session ordering conflicts. Both check rehab state first and hand off to REHAB.md when it is active. Use when asked what to train today, to plan or review a training week, or to apply the rules layer in RULES.md.
 ---
 
 # SKILL
@@ -60,9 +60,18 @@ about unaffected disciplines — say those, inside `REHAB.md`'s constraints.
 
 ### 2. Dossier
 
-Read `DOSSIER.md`. Establish which `dossier:` rules activate. If the file is
-missing, say so: it is created locally from `DOSSIER.template.md` and every
-`dossier:` rule is inert until it exists.
+Read `DOSSIER.md`. Establish the declared disciplines (`discipline:` rules)
+and which `dossier:` rules activate. `DOSSIER.template.md` lists what each
+field activates. If the file is missing, say so: it is created locally from
+the template, and every `discipline:` and `dossier:` rule is inert until it
+exists. The rules that load for every athlete still apply.
+
+If `goal` is empty, `goal_type_branch` loads: ask for the goal before any
+recommendation that depends on it, and do not default to longevity.
+
+A discipline the athlete trains but the dossier does not list, or one outside
+the covered set, gets no rules. Say so; do not supply them from general
+knowledge.
 
 Report any dossier-gated field that is empty **and gates a HARD rule** —
 currently `bsi_history` (`bsi_history_pathway`) and `fuelling_flag`
@@ -79,9 +88,12 @@ Establish, per axis, what data exists for this run:
 
 | Axis | Source | Expect |
 | --- | --- | --- |
-| Systemic / cardiometabolic | intervals.icu | Present and reliable — `bike_load_is_the_reliable_one` |
+| Systemic / cardiometabolic | intervals.icu | Present. Power-based cycling load is the most reliable — `bike_load_is_the_reliable_one` |
 | Finger / upper-limb mechanical | Not in intervals.icu | Absent. Ask. |
 | Lower-limb tendon / structural | Partial — cycling and running present, strength usually not | Ask for the strength part |
+
+An axis no declared discipline feeds is not applicable for this athlete —
+report it as such, not as zero load (`separate_load_axes`).
 
 Read CTL, ATL, TSB and ramp from intervals.icu. Do not recompute them, do not
 build a normalisation layer, and do not fit an impulse-response model. Single
@@ -101,7 +113,8 @@ not zero.
 1. Last 7-10 days of activities, plus CTL / ATL / TSB / ramp as reported.
 2. Wellness where logged — sleep, HRV, subjective. `sleep_as_modifier` is a
    load-reduction signal, not a rest-day trigger on its own.
-3. **Days since the last hard finger session**, counting bouldering and
+3. If climbing is declared: **days since the last hard finger session**,
+   counting bouldering and
    hangboard as one category. Not in intervals.icu. Ask, and if the answer is
    unknown, say the finger-spacing check could not run rather than assuming it
    passed.
@@ -112,6 +125,9 @@ not zero.
 ### Checks
 
 In order. Stop conditions first, because a stop condition makes the rest moot.
+A check whose rule is not active for this dossier — the finger checks without
+climbing, for example — is reported as not applicable, which is distinct from
+passed and from not run.
 
 1. `climbing_in_pain_flag` — stop condition.
 2. `underfuelling_check` — fires before any load increase, if the dossier field
@@ -153,7 +169,8 @@ Everything daily reads, plus:
 
 ### Checks
 
-Run all six. Report each, including the ones that pass.
+Run all six. Report each, including the ones that pass and, as not
+applicable, the ones whose rules are not active for this dossier.
 
 1. **Strength dose, 28-day window.** `strength_dose_target` — operating band
    60-120 min/week; flag any 28-day window averaging under 60. Note that the
@@ -171,12 +188,13 @@ Run all six. Report each, including the ones that pass.
    `strength_cycling_same_day_order`. The last one resolves same-day order by
    which adaptation the current block protects; if the block phase is not
    established, ask rather than assigning an order.
-5. **Intensity distribution.** `tid_flexible` — pyramidal-leaning default,
-   ~75-80% below LT1. Display it. Do not optimise toward it and do not report
+5. **Intensity distribution**, for any endurance discipline. `tid_flexible` —
+   pyramidal-leaning default, ~75-80% below LT1. Display it. Do not optimise toward it and do not report
    drift from it as an error; POL vs PYR meta-analyses are split.
 6. **Interval and progression rules**, where a cycling quality session is in
    the week — `two_quality_sessions_default`, `anchor_short_intervals_to_power`,
-   `sweet_spot_is_time_efficiency`. All are gated `NOT state:rehab`.
+   `sweet_spot_is_time_efficiency`. `two_quality_sessions_default` is gated
+   `NOT state:rehab`; the other two are not.
 
 ### Output
 
