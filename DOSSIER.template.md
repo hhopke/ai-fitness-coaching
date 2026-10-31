@@ -1,12 +1,18 @@
 # DOSSIER
 
-Setup guide and template. Copy this file to `DOSSIER.md` and fill it in by
-hand. `DOSSIER.md` is gitignored: it holds personal health information and is
-never committed.
+Setup guide and template. Run `/setup` to build `DOSSIER.md` from it by
+interview, or copy it to `DOSSIER.md` and fill it in by hand. `DOSSIER.md` is
+gitignored: it holds personal health information and is never committed.
 
-The rules layer reads the dossier instead of asking. Every field here is
-something no training platform API can supply. Update it when something
-changes; otherwise it is static.
+The rules layer reads the dossier instead of asking. Update it when something
+changes (`/setup --section <name>` redoes one section); otherwise it is
+static.
+
+**Only what the platform cannot know goes here** (`CLAUDE.md`, data
+ownership). Load, activities, wellness, thresholds, zones, and profile values
+intervals.icu holds are fetched every session and never written down — not
+even as a reminder. For thresholds the dossier records provenance only: which
+test set it, when, under what protocol. Never the number.
 
 ## How to fill it in
 
@@ -31,7 +37,18 @@ Rules that load for every athlete regardless of what is written here:
 
 ---
 
+## Platform — `athlete_id`
+
+Section name: `athlete_id`. The one platform identifier stored here: every
+MCP call passes it explicitly, so this copy is pinned to its athlete.
+
+- athlete_id:
+
+Activates nothing.
+
 ## Disciplines — `disciplines`
+
+Section name: `disciplines`.
 
 List every discipline trained regularly, from: `cycling`, `running`,
 `swimming`, `climbing`, `strength`. Each one activates `discipline:<name>`.
@@ -79,16 +96,23 @@ What each activates. Rules marked *(with X)* also need discipline X.
   `strength_dose_target` applies whether or not strength is listed: leaving
   it out means the dose flag fires, not that the rule is off.
 
-Typical week per discipline (context — sessions/week, hours or distance,
-longest session in the last 30 days for running):
+Where each discipline is logged (context): `intervals.icu`, another place
+(name it), or `self-reported`. Volume for disciplines logged in intervals.icu
+is fetched, not recorded here. For disciplines it does not see, a typical
+week (sessions, hours) may be recorded, because the platform cannot know it.
 
 - 
+
+Scheduling (context):
+
 - Total weekly hours available:
 - Hard scheduling constraints (fixed days, travel, family):
 
 ## Goal — `goal`
 
-One of `longevity` or `performance`.
+Section name: `goal`. The leading goal: one of `longevity` or
+`performance`. If both matter, record the one that leads here and the other
+under secondary goal.
 
 - goal:
 
@@ -100,14 +124,14 @@ One of `longevity` or `performance`.
 - **empty** — activates `goal_type_branch`: the assistant asks before any
   recommendation that depends on goal, and does not default to longevity.
 
-Context: secondary goal, and explicit non-goals (e.g. no racing, no volume
-PRs, no weight targets):
+Context:
 
-- 
+- Secondary goal:
+- Explicit non-goals (e.g. no racing, no volume PRs, no weight targets):
 
 ## Events — `event_date`
 
-Next event: date (YYYY-MM-DD), name, discipline. Leave empty if none.
+Section name: `events`. Next event: date (YYYY-MM-DD), name, discipline. Leave empty if none.
 
 - event_date:
 
@@ -116,7 +140,7 @@ suppresses `no_taper_by_default`. Outside that window, activates nothing.
 
 ## Injury history — `injury_history`
 
-Every injury that recurred or lost more than two weeks: site, year, the load
+Section name: `injury_history`. Every injury that recurred or lost more than two weeks: site, year, the load
 pattern that caused it, whether it recurred. Write `none` if none.
 
 - 
@@ -129,7 +153,7 @@ see `REHAB.md`.
 
 ## Bone stress injury history — `bsi_history`
 
-Site, grade if known, year, management. Write `none` if none.
+Section name: `bsi_history`. Site, grade if known, year, management. Write `none` if none.
 
 - 
 
@@ -138,7 +162,7 @@ unanswered HARD-rule gate.
 
 ## Fuelling — `fuelling_flag`
 
-Any history of restricting intake or training under-fuelled: `yes` or `no`.
+Section name: `fuelling`. Any history of restricting intake or training under-fuelled: `yes` or `no`.
 If yes, describe briefly.
 
 - fuelling_flag:
@@ -148,7 +172,8 @@ load increase. Empty is reported as an unanswered HARD-rule gate.
 
 ## Sleep — `sleep_logged`
 
-Sleep source and how reliably it is logged. Leave empty if not logged.
+Section name: `sleep`. Sleep source and how reliably it is logged — not the
+sleep data, which is fetched. Leave empty if not logged.
 
 - sleep_logged:
 
@@ -161,35 +186,43 @@ Activates `sleep_as_modifier`.
 These activate nothing. Rules read them as context, and some cannot run
 without them.
 
-### Identity and baseline
+### Training age
 
-- Age:
-- Sex:
-- Years of consistent endurance training:
+Section name: `training_age`. Age, sex and weight are read from the
+intervals.icu profile; record them here only if the profile does not carry
+them, and say so.
+
+- Years of consistent training, per discipline:
 - Years of consistent resistance training: (read by the caveats of
   `heavy_load_required_for_max_strength`,
   `load_magnitude_over_exercise_identity` and `strength_progression_is_load`,
   whose evidence base is mostly novices)
-- intervals.icu athlete id:
 
-### Thresholds
+### Threshold provenance
 
-Record the protocol with every value: `cp_protocol_fixity` only compares
-values from an identical protocol.
+Section name: `thresholds`. The values live in intervals.icu sport settings
+and are fetched with `icu_get_sport_settings`. Record only how each was set:
+test type, date, protocol. `cp_protocol_fixity` compares values only across
+an identical protocol, so the protocol is what matters here.
 
-- FTP (date, protocol):
-- CP / W' (date, protocol):
-- Run threshold pace or LTHR (date):
-- Swim CSS (date, stroke, course):
-- Last threshold test of any kind:
+- Cycling threshold (FTP / CP / W'): set by:  date:  protocol:
+- Run threshold (pace / LTHR): set by:  date:  protocol:
+- Swim threshold (CSS): set by:  date:  stroke, course:
+- Max HR, per sport: set by:  date:
+- Open discrepancies (athlete-stated vs platform; no numbers):
 
 ### Health flags
+
+Section name: `health`.
 
 - Known cardiac findings:
 - Medications affecting HR or HRV:
 - Anything a coach should know before prescribing high intensity:
 
 ### Data sources and their reliability
+
+Section name: `data_sources`. Which devices and logging habits produce the
+data — not the data.
 
 - Cycling power: yes/no, meter type (`anchor_short_intervals_to_power`
   substitutes RPE and terrain, not HR, without one)
@@ -203,6 +236,8 @@ values from an identical protocol.
   the date and whether each session was hard.
 
 ### Standing preferences
+
+Section name: `preferences`.
 
 - Days that are always rest:
 - Sessions I will not do regardless of what the data says:

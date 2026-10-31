@@ -19,10 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Scope: this license covers code and structure — the skill workflow in
-.claude/skills/, repository configuration, and the file and rule-schema
-layout. Rules and documentation are licensed separately under CC BY 4.0; see
-LICENSE-DOCS and the License section of README.md.

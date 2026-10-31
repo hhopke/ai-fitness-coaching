@@ -1,4 +1,4 @@
-# RULES v0.5
+# RULES v0.5.1
 
 Full rules layer. Nothing is deleted; rules activate by tag.
 
@@ -35,6 +35,17 @@ setting whose purpose is to do so.
 
 `type:` HARD (do not override) · SOFT (default, overridable) ·
 BRANCH (do not decide, ask) · DISCLOSURE (state when relevant)
+
+`confidence:` uses a closed set of labels; lowercase qualifiers may follow
+one. `tools/lint_rules.py` enforces it.
+  CONSENSUS, CONTESTED, PRACTITIONER — inherited from the reviews.
+  NO EVIDENCE — the literature was checked and is silent on the question.
+    An evidential finding: the absence is the result.
+  N/A (architectural) — the rule makes no evidential claim at all; it routes,
+    gates or asks. Valid only together with `judgment_call:`, which says why.
+Where a source uses a label outside this set, the rule carries the nearest
+label in `confidence:`, the source's wording verbatim in `source_label:`, and
+a `judgment_call:` explaining the mapping.
 
 Confidence labels are inherited from the source reviews and must not be
 stripped when a rule is quoted, summarised or acted on.
@@ -399,7 +410,7 @@ section sets what goes in the session. It does not restate the dose target.
 - id: no_overhead_selection_evidence
   activation: discipline:strength
   type: DISCLOSURE
-  confidence: no evidence exists
+  confidence: NO EVIDENCE (no healthy-adult selection study exists)
   statement: >
     No healthy-adult exercise-selection evidence exists for the shoulder
     girdle or overhead press. Any progressive overhead or push loading is
@@ -451,7 +462,8 @@ section sets what goes in the session. It does not restate the dose target.
 - id: what_survives_a_cut_session
   activation: discipline:strength
   type: SOFT
-  confidence: evidence-informed
+  confidence: PRACTITIONER
+  source_label: "evidence-informed (03 C3, verbatim)"
   statement: >
     When a session is cut short, in order: keep the heavy compound at target
     load, because strength and tendon depend on load magnitude and few sets
@@ -473,6 +485,15 @@ section sets what goes in the session. It does not restate the dose target.
     ACSM 2026 has no tendon outcome of any kind, so the high-strain clause
     is unaffected by it and continues to rest on 03-session-prescription.md
     C2. Its evidence base is predominantly novice trainees.
+  judgment_call: >
+    The prioritisation is this repo's synthesis. Its components are
+    CONSENSUS findings — strength and tendon adaptation depend on load
+    magnitude, hypertrophy tolerates volume reduction
+    (03-session-prescription.md C2, C3) — but no study tests the order of
+    what to drop from a cut session. The source labels it "evidence-informed", outside the label
+    vocabulary; PRACTITIONER is the label for an ordering assembled from
+    findings rather than tested as one. source_label: keeps the source's own
+    wording.
   source: 03-session-prescription.md C3; 04-acsm-rt.md A1, A3, B1, B2, B3
 ```
 
@@ -1244,6 +1265,7 @@ position 2 and is gated only by endurance discipline, never by goal.
 - id: goal_type_branch
   activation: NOT dossier:goal
   type: BRANCH
+  confidence: N/A (architectural)
   statement: >
     No goal is declared in the dossier. The goal-gated rules —
     crf_is_the_lever_not_the_method, zone2_not_privileged,
@@ -1274,6 +1296,7 @@ position 2 and is gated only by endurance discipline, never by goal.
 - id: rehab_mode_supersedes
   activation: always
   type: HARD
+  confidence: N/A (architectural)
   statement: >
     When rehab mode is active, REHAB.md governs and the progression rules in
     this file are subordinate to it. Plan generation does not resume on its

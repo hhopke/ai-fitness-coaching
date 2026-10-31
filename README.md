@@ -15,12 +15,15 @@ stance.
 
 ## Setup
 
-1. Copy `DOSSIER.template.md` to `DOSSIER.md` and fill it in by hand. The
-   template is the setup guide: each field says which rules it activates.
-   Empty is a valid answer; a guess is not.
-2. Connect the intervals.icu MCP server and put your athlete id in the
-   dossier.
-3. Run `/training daily` or `/training weekly`.
+1. Connect the intervals.icu MCP server
+   ([hhopke/intervals-icu-mcp](https://github.com/hhopke/intervals-icu-mcp)).
+2. Run `/setup`. It builds `DOSSIER.md` from `DOSSIER.template.md` by
+   interview, reads what intervals.icu already knows, and records only what
+   it cannot know. Thresholds are confirmed, not stored. Empty is a valid
+   answer; a guess is not. `/setup --section <name>` redoes one section.
+3. Run `/training daily` or `/training weekly`. Every output opens with a
+   data block naming the tool behind each value; weekly drafts are checked by
+   a read-only reviewer before you see them.
 
 ## Coverage
 
@@ -65,6 +68,9 @@ of its source. Read the verification status in
 | `REHAB.md` | Rehab mode — supersedes progression logic in `RULES.md` while active |
 | `private/rehab-case.md` | Active rehab case; rehab state is read from it. **Gitignored** — format in `REHAB.md` |
 | `.claude/skills/training/` | Workflow and output format — `daily` and `weekly` modes, invocable as `/training` |
+| `.claude/commands/setup.md` | `/setup` — builds and updates `DOSSIER.md` |
+| `.claude/agents/plan-reviewer.md` | Read-only reviewer for weekly drafts |
+| `tools/lint_rules.py` | Rules and data-ownership lint; `tools/lint_allowlist.txt` holds cited literature figures. Runs in CI on pull requests |
 | `reviews/` | Source evidence reviews, numbered `NN-topic.md` (`01`-`04`) |
 | `HANDOFF.md` | Kickoff brief. Delete once the build is running |
 
@@ -77,13 +83,18 @@ computes CTL, ATL, TSB and ramp server-side.
 Strength and climbing sessions may not be in intervals.icu. Where a rule needs
 absent data, say so. Absent data is absent, not zero.
 
+**Data ownership.** intervals.icu owns load, activities, wellness,
+thresholds and zones. They are fetched each session and never written to a
+repo file, the dossier included; the dossier records only what the platform
+cannot know, plus how each threshold was set. See `CLAUDE.md`.
+
 Personal health information — the dossier and the rehab case — stays local.
 Both paths are gitignored; tracked files refer to rules and tissues
 generically.
 
 ## Status
 
-Rules layer and workflow are written. `RULES.md` is at v0.5 — 74 rules, every
+Rules layer and workflow are written. `RULES.md` is at v0.5.1 — 74 rules, every
 one carrying `source:` back to a review section or `judgment_call:` naming the
 position as this repo's rather than a review finding.
 
@@ -119,15 +130,16 @@ Outstanding before first use:
 
 ## License
 
-Split by content type:
+Copyright (c) 2026 Heiko Kromminga. Split by content type:
 
-- **Code and structure** — the skill workflow in `.claude/skills/`, repo
-  configuration, and the file and rule-schema layout — under the
-  [MIT License](LICENSE).
-- **Rules and documentation** — `RULES.md`, `REHAB.md`, `CLAUDE.md`, this
-  README, `DOSSIER.template.md`, `HANDOFF.md` and `reviews/` — under
-  [CC BY 4.0](LICENSE-DOCS).
+- **Code and structure** — under the [MIT License](LICENSE):
+  `.claude/skills/`, `.claude/commands/`, `.claude/agents/`, `tools/`,
+  `.github/`, `.gitignore`, and the file and rule-schema layout.
+- **Rules and documentation** — under
+  [CC BY 4.0](LICENSE-docs) ([summary](https://creativecommons.org/licenses/by/4.0/)):
+  `RULES.md`, `REHAB.md`, `CLAUDE.md`, this README, `DOSSIER.template.md`,
+  `HANDOFF.md` and `reviews/`.
 
-Quotations from cited works remain under their authors' terms. In particular,
-`reviews/04-acsm-rt.md` quotes a CC BY-NC-ND source; those quotations are not
-relicensed.
+Quotations from cited works remain under their authors' terms and are not
+relicensed. In particular, `reviews/04-acsm-rt.md` quotes Currier et al.,
+Med Sci Sports Exerc 2026;58(4):851-872, which is licensed CC BY-NC-ND.

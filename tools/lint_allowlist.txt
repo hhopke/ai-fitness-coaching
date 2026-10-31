@@ -1,0 +1,6 @@
+# Literature figures that match the data-ownership patterns in
+# tools/lint_rules.py. Format: path | substring of the line | citation.
+# Only cited study results belong here. A value from an athlete's own
+# platform account is removed, never allowlisted.
+RULES.md | 222 to 239 W in one arm | 03-session-prescription.md B2: power at OBLA, threshold-interval study arm
+RULES.md | +9.8% LT power (~17 W) | 03-session-prescription.md B2: LT-interval study, mean LT power gain

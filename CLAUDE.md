@@ -86,6 +86,11 @@ private/rehab-case.md
                      the active rehab case and rehab state. Gitignored
 .claude/skills/training/SKILL.md
                      workflow and output format, invocable as a skill
+.claude/commands/setup.md
+                     /setup: builds DOSSIER.md from the template
+.claude/agents/plan-reviewer.md
+                     read-only reviewer for weekly-mode drafts
+tools/lint_rules.py  rules and data-ownership lint, run in CI on PRs
 reviews/
   01-endurance.md    sections 1 to 7, the original evidence review
   02-climbing.md     climbing, bouldering, resistance training review
@@ -118,6 +123,46 @@ athlete, single source. The complexity is not earned.
 Strength and climbing sessions may not be in intervals.icu. Where a rule needs
 data that is absent, say so explicitly rather than inferring. Absent data is
 absent, not zero.
+
+## Data ownership
+
+Separate from the evidence positions above, and binding on every file and
+every output.
+
+1. **Single source per value.** Platform-owned values are never written to
+   DOSSIER.md, DOSSIER.template.md, SKILL.md, RULES.md or any other repo
+   file. Platform-owned means: load metrics (CTL, ATL, TSB, ramp);
+   activities and figures derived from them (e.g. longest run in 30 days);
+   wellness (HRV, sleep, resting HR); thresholds and zones (FTP, CP, LTHR,
+   max HR, pace and CSS thresholds); and profile values the platform holds
+   (date of birth, sex, weight).
+2. **Thresholds and zones come from `icu_get_sport_settings` only.** Never
+   from the curve tools, and never from the threshold fields in
+   `icu_get_athlete_profile`. The curve tools' zone blocks were built from
+   hardcoded percentage tables rather than the athlete's configuration and
+   were removed for that reason (intervals-icu-mcp CHANGELOG, curve-tool zone
+   removal).
+3. **The dossier stores only what the platform cannot know**, plus metadata
+   about platform values: which test set a threshold, its date, its
+   protocol. Never the value itself.
+4. **Exception: `athlete_id` is stored in the dossier.** Every MCP call
+   passes it explicitly, so a copy is pinned to its athlete rather than to
+   whichever athlete the server is configured with by default; an account
+   that coaches or follows others reaches several. `icu_list_athletes` can
+   help find the id during `/setup`; it never chooses one.
+5. **Values from memory, conversation history, prior sessions or chat
+   project context are never used for decisions.** Every value an output
+   relies on is fetched in the session that produces it, and the output says
+   which tool supplied it.
+
+## Validation
+
+Run `python tools/lint_rules.py` after any change to RULES.md,
+DOSSIER.template.md or tracked prose. It checks rule structure, activation
+tags against the template, confidence labels, the version bump, and the data
+ownership rule. CI runs it on every pull request. A literature figure that
+trips the ownership scan goes in `tools/lint_allowlist.txt` with its citation;
+a platform value is removed, never allowlisted.
 
 ## Boundary
 

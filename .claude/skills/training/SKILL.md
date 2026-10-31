@@ -33,7 +33,7 @@ window. Do not answer a weekly question by running daily seven times.
 
 ## PREFLIGHT
 
-Runs before either mode. All three steps, every time, in this order.
+Runs before either mode. All steps, every time, in this order.
 
 ### 1. Rehab state
 
@@ -95,14 +95,58 @@ Establish, per axis, what data exists for this run:
 An axis no declared discipline feeds is not applicable for this athlete —
 report it as such, not as zero load (`separate_load_axes`).
 
-Read CTL, ATL, TSB and ramp from intervals.icu. Do not recompute them, do not
-build a normalisation layer, and do not fit an impulse-response model. Single
-athlete, single source; the complexity is not earned.
+Fetch every platform value this run uses, in this run, with `athlete_id`
+from the dossier passed explicitly on every call (`CLAUDE.md`, data
+ownership). Tool names are as registered by the intervals.icu MCP server;
+the client adds its own prefix. If the tools are unavailable, say the server
+is not connected and stop — do not continue from memory.
+
+| Value | Tool |
+| --- | --- |
+| CTL, ATL, TSB, ramp | `icu_get_fitness_summary`, or `icu_get_fitness_chart` for a window |
+| Activities and anything derived from them (volumes, longest run, days since a session) | `icu_get_activities_by_date` |
+| Wellness — HRV, sleep, resting HR, subjective scores | `icu_get_wellness_data` |
+| Thresholds and zones | `icu_get_sport_settings` only — never the profile's FTP fields, never the curve tools |
+
+Values from memory, conversation history, earlier sessions or project
+context are never used, even when they look current. A value the dossier
+appears to hold for a platform-owned quantity is not used either; report it
+as a data-ownership violation.
+
+Do not recompute CTL, ATL, TSB or ramp, do not build a normalisation layer,
+and do not fit an impulse-response model. Single athlete, single source; the
+complexity is not earned.
 
 Where a rule needs data that is absent, **say so and ask**. Do not infer
 climbing load from a gap in the calendar, do not treat an unlogged strength
 session as zero minutes, and do not substitute a proxy. Absent data is absent,
 not zero.
+
+### 4. Provenance block
+
+Every output of either mode opens with a data block. **An output without
+it is invalid** and is not shown; build the block and then the output.
+
+The block lists every value the output uses, the tool that supplied it, and
+when it was fetched. Data the platform does not hold is listed too, as
+`self-reported` (with what the athlete said, this session) or `absent`.
+Absent is absent, not zero: an absent row is never filled with an estimate.
+
+```
+DATA — fetched <date> <time> <timezone>
+value                          source                                     fetched
+CTL / ATL / TSB / ramp         icu_get_fitness_summary                    <time>
+activities <oldest>..<newest>  icu_get_activities_by_date                 <time>
+<sport> threshold and zones    icu_get_sport_settings                     <time>
+HRV, sleep, last 7 days        icu_get_wellness_data                      <time>
+hard finger sessions           self-reported: "<athlete's words>"         this session
+climbing load                  absent — not in intervals.icu              —
+strength minutes, 28 days      absent — not logged, not asked yet         —
+```
+
+The block shows the values themselves inline where the output relies on
+them. A number that appears in the output and not in the block is a
+violation.
 
 ---
 
@@ -142,7 +186,9 @@ passed and from not run.
 
 ### Output
 
-Short. Three parts, no preamble:
+Short. The provenance block, then three parts, no preamble. No reviewer
+runs in daily mode (cost and latency), so the block is the only check that
+every number has a source — it is mandatory.
 
 - **Recommendation** — what to do today, or the choice between two options
   where a rule is SOFT and the call is genuinely the athlete's.
@@ -196,9 +242,33 @@ applicable, the ones whose rules are not active for this dossier.
    `sweet_spot_is_time_efficiency`. `two_quality_sessions_default` is gated
    `NOT state:rehab`; the other two are not.
 
+### Review
+
+After drafting and before output, the draft is reviewed by the
+`plan-reviewer` agent (`.claude/agents/plan-reviewer.md`), spawned with fresh
+context. It is read-only and has no MCP access, so it judges only what it is
+handed. Pass it, verbatim:
+
+1. the draft, including its provenance block;
+2. the raw output of every tool call the block cites — not a summary;
+3. every self-reported statement the block cites, in the athlete's words;
+4. rehab state and the declared disciplines and goal, as read in preflight.
+
+It reads `CLAUDE.md`, `RULES.md` and `DOSSIER.md` itself and checks the draft
+against (a) the rules active for this dossier, (b) the seven `CLAUDE.md`
+evidence positions, and (c) data ownership — every number traceable to a
+tool output from this session or a self-report from this session. It returns
+violations by rule id.
+
+Revise the draft to resolve each violation, then run the reviewer once more
+on the revision. Anything still unresolved after that goes into the output
+under **Reviewer findings**, verbatim, with the rule id. Unresolved
+violations are shown to the athlete, never hidden or softened.
+
 ### Output
 
-Structured. One block per axis, then the cross-axis checks, then:
+Structured. The provenance block, then one block per axis, then the
+cross-axis checks, then:
 
 - **Dose** — 28-day strength average against the band, or the statement that
   the window is incomplete and by how much.
@@ -206,6 +276,8 @@ Structured. One block per axis, then the cross-axis checks, then:
 - **Absent** — every check that did not run, and what would let it run.
 - **Displayed, not deciding** — ACWR if surfaced at all, the systemic-only
   combined figure if shown, and any trend the athlete asked to see.
+- **Reviewer findings** — violations the reviewer reported that the revision
+  did not resolve, or "none".
 
 ---
 
@@ -259,10 +331,13 @@ Applies to both modes.
    `reviews/`.
 4. **Absent is stated, never filled.** A check that did not run is reported as
    not run. It is never silently dropped and never reported as passing.
-5. **Judgment calls are marked.** Where a rule carries a `judgment_call:`
+5. **Every number has a source.** The provenance block opens the output, and
+   every number in the output traces to a tool call in this session or a
+   self-report in this session. No value from memory or an earlier session.
+6. **Judgment calls are marked.** Where a rule carries a `judgment_call:`
    field, output derived from it says the position is this repo's, not a review
    finding.
-6. **Style.** Concise and technically precise. No encouragement, no
+7. **Style.** Concise and technically precise. No encouragement, no
    motivational framing. State uncertainty plainly rather than hedging around
    it.
 
