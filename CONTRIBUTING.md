@@ -12,8 +12,10 @@ in a review under `reviews/`.
 - Confidence labels come from the closed set documented at the top of
   `RULES.md`. A source label outside the set goes in `source_label:`,
   verbatim, with a `judgment_call:` explaining the mapping.
-- A rule that reads data lists the capabilities it needs in `requires:`. It
-  never names a data source or a tool.
+- A rule that reads data lists the capabilities it needs in `requires:` —
+  a capability, or `any_of: [a, b]` where the source accepts either as the
+  same measure. It never names a data source or a tool. `/setup` is the
+  exception by design: it is the `intervals-icu` provider's setup.
 - Any change to rule content bumps the version on the first line of
   `RULES.md`.
 
@@ -52,6 +54,12 @@ capability until a rule is written for it, with a source.
 **Data ownership holds for every provider.** Values a provider owns are
 fetched in the session that uses them and never written to a repo file,
 the dossier included (`CLAUDE.md`, data ownership).
+
+## License
+
+The repository is under the [MIT License](LICENSE). Contributions are
+accepted under the same licence. Quoted and cited third-party material in
+`reviews/` stays under its original terms.
 
 ## Commits
 

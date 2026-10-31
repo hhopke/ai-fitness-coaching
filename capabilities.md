@@ -12,9 +12,11 @@ Two providers:
   client adds its own prefix. Every call passes `athlete_id` from the
   dossier. Everything it supplies is platform-owned (`CLAUDE.md`, data
   ownership): fetched in the session that uses it, never written down.
-- **`manual`** — the athlete's own report, asked in the session that uses
-  it, with the prompts in [Manual provider](#manual-provider). Self-reports
-  are not stored either: the dossier is static context, not a log.
+- **`manual`** — the athlete's own report. Either asked in the session that
+  uses it, with the prompts in [Manual provider](#manual-provider), or — for
+  static declarations (`lt1_boundary`, and `events` where the athlete keeps
+  them in the dossier) — declared in the dossier through `/setup`. In-session
+  reports are not stored: the dossier is static context, not a log.
 
 ## Contract
 
@@ -199,6 +201,38 @@ Two providers:
   providers:
     manual: true
 
+- id: cp_test
+  meaning: Result of a fixed-protocol CP or FTP test.
+  semantics: >
+    The test result as the protocol defines it (W, or CP and W'), with the
+    protocol and the date. From the athlete: result, protocol and date as
+    entered. From intervals.icu: an activity carrying the test tag recorded
+    in the dossier, under the protocol recorded there, with the result
+    computed from the activity's intervals as that protocol defines.
+    Comparable only across an identical protocol (cp_protocol_fixity); a
+    change counts only beyond measurement_error. A test result is a
+    performance measure, not the configured threshold: it is never read as
+    sport_thresholds and never written to sport settings. Power-curve
+    estimates are not tests and do not supply it.
+  freshness: tests within the review period; showing change needs two under the same protocol
+  providers:
+    intervals-icu: [icu_search_activities, icu_get_activity_intervals]
+    manual: true
+
+- id: events
+  meaning: Upcoming target events.
+  semantics: >
+    Per event: date, name, discipline, and priority where recorded (A, B,
+    C). One provider per athlete, recorded in the dossier as
+    events_provider: race events in the intervals.icu calendar, or the
+    dossier's event fields. Dossier event fields are read only when the
+    provider is the dossier; when events live in intervals.icu, the dossier
+    holds no event dates (single source per value).
+  freshness: at least the next 8 weeks, fetched or read this session
+  providers:
+    intervals-icu: [icu_get_calendar_events]
+    manual: true
+
 - id: vo2max
   meaning: Measured maximal oxygen uptake.
   semantics: >
@@ -209,13 +243,17 @@ Two providers:
   providers: {}
 
 - id: lt1_boundary
-  meaning: The intensity at the first lactate or ventilatory threshold.
+  meaning: Which configured zone edge marks the first lactate or ventilatory threshold.
   semantics: >
-    The boundary below which tid_flexible counts "below LT1". A configured
-    zone edge is this capability only if the athlete has established that
-    edge as LT1 by test; no provider records that today.
-  freshness: test or determination within the current season
-  providers: {}
+    A declaration, not a value: sport, the configured zone edge, the test
+    that established that edge as LT1, and the test date. The intensity
+    itself is read from that edge in sport_thresholds. An edge not
+    established by a test is not this capability; a default zone model's
+    edge is never LT1 by assumption. tid_flexible counts "below LT1"
+    against it.
+  freshness: declared in the dossier; the test date is shown with every use
+  providers:
+    manual: true
 
 - id: measurement_error
   meaning: Typical measurement error of the athlete's CP/FTP protocol.
@@ -247,7 +285,11 @@ it.
 - Never infer a manual capability from training data: a gap in the
   calendar is not a rest day for the fingers, and an unlogged strength
   session is not zero minutes.
-- Never store a self-report in the dossier or carry it to a later session.
+- Never store an in-session report in the dossier or carry it to a later
+  session.
+- Static declarations (`lt1_boundary`; `events` when kept in the dossier)
+  are read from the dossier, not asked each session, and change only
+  through `/setup`. An empty declaration is absent.
 
 ### Prompts
 
@@ -284,6 +326,19 @@ else (`REHAB.md` ENTRY; `climbing_in_pain_flag`).
 #### fuelling_status
 Before any load increase: "Has your intake kept pace with your training
 recently — yes, no, or not sure?"
+
+#### cp_test
+When a rule needs a response measure and no tagged test activity is found:
+"Have you done a CP or FTP test in this period? Result, protocol, and date."
+A result without its protocol is not comparable and is recorded as absent.
+
+#### events
+Read from the dossier's event fields when `events_provider` is `dossier`.
+Not asked per session; changed through `/setup --section events`.
+
+#### lt1_boundary
+Read from the dossier's threshold provenance. Not asked per session;
+declared through `/setup --section thresholds`.
 
 #### block_focus
 When two sessions stack on one day: "Is this block protecting strength,

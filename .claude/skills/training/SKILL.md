@@ -99,6 +99,14 @@ through its providers:
   of its own.
 - **No provider** (`providers: {}`) — the requiring rule's check is reported
   as not run, naming the capability. Nothing stands in for it.
+- **`any_of`** — met by any one listed capability. Use what is available,
+  and name in the output which one the reading rests on; a rule may carry a
+  caveat about one alternative's footing.
+
+Rules gated on a `capability:` tag — the taper rules, on `events` — are
+resolved here, once the capability is fetched or read. If it is absent,
+neither taper rule loads and the gate is reported as unresolved: an absent
+event list is not an empty one.
 
 Per axis (`separate_load_axes`):
 
@@ -239,9 +247,10 @@ applicable, the ones whose rules are not active for this dossier.
 5. **Intensity distribution**, for any endurance discipline. `tid_flexible` —
    pyramidal-leaning default, ~75-80% below LT1. Display it. Do not optimise
    toward it and do not report drift from it as an error; POL vs PYR
-   meta-analyses are split. `lt1_boundary` has no provider: show
-   `time_in_zone` against the configured zones and say that which zone edge
-   is LT1 is not established.
+   meta-analyses are split. Count "below LT1" against `lt1_boundary`, and
+   show its test and date with the figure. If the declaration is empty, show
+   `time_in_zone` against the configured zones and say LT1 is not
+   established; do not treat any default zone edge as LT1.
 6. **Interval and progression rules**, where a cycling quality session is in
    the week — `two_quality_sessions_default`, `anchor_short_intervals_to_power`,
    `sweet_spot_is_time_efficiency`. `two_quality_sessions_default` is gated

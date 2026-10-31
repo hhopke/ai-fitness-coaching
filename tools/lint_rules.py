@@ -11,7 +11,9 @@ Checks:
   5. confidence: is present and uses only the allowed labels;
      "N/A (architectural)" and source_label: only with judgment_call:.
   6. RULES.md version is bumped whenever rule content changed against --base.
-  7. Capabilities: every requires: entry is defined in capabilities.md;
+  7. Capabilities: every requires: entry (a capability, or any_of: a list
+     of them) and every capability: activation tag is defined in
+     capabilities.md;
      each capability is well formed, uses only the known providers, has a
      manual prompt if manual supplies it, and is required by some rule
      unless display_only. RULES.md names no MCP tool. Capabilities no
@@ -91,7 +93,7 @@ def parse_template(text: str) -> tuple[set[str], dict[str, str]]:
     fields: dict[str, str] = {}
     sections = re.split(r"^## ", text, flags=re.M)
     for sec in sections:
-        h = re.match(r".*? — `([a-z_]+)`\s*$", sec.splitlines()[0]) if sec else None
+        h = re.match(r".*? — `([a-z0-9_]+)`\s*$", sec.splitlines()[0]) if sec else None
         if h:
             fields[h.group(1)] = sec
     return disciplines, fields
@@ -101,10 +103,10 @@ def activation_terms(act: str) -> list[tuple[str, str, str | None]]:
     """Return (kind, name, value) for each tag in an activation expression."""
     terms = []
     for kind, name, value in re.findall(
-        r"\b(discipline|state|dossier):([a-z_]+)(?:=([a-z_]+))?", act
+        r"\b(discipline|state|dossier|capability):([a-z0-9_]+)(?:=([a-z0-9_]+))?", act
     ):
         terms.append((kind, name, value or None))
-    rest = re.sub(r"\b(?:discipline|state|dossier):[a-z_]+(?:=[a-z_]+)?", "", act)
+    rest = re.sub(r"\b(?:discipline|state|dossier|capability):[a-z0-9_]+(?:=[a-z0-9_]+)?", "", act)
     rest = re.sub(r"\bwithin \d+d\b|\bbefore load increase\b", "", rest)
     rest = re.sub(r"\b(?:AND|OR|NOT|always|dormant)\b", "", rest)
     if rest.strip(" ()"):
@@ -156,6 +158,8 @@ def check_rules(rules: list[dict], disciplines: set[str], fields: dict[str, str]
                 err(f"{rid}: activation has unresolved text {name!r}")
             elif kind == "discipline" and name not in disciplines:
                 err(f"{rid}: discipline:{name} is not a discipline in DOSSIER.template.md")
+            elif kind == "capability":
+                pass  # resolved against capabilities.md in check_capabilities
             elif kind == "state" and name not in STATES:
                 err(f"{rid}: state:{name} is not a known state {sorted(STATES)}")
             elif kind == "dossier":
@@ -171,7 +175,9 @@ def check_rules(rules: list[dict], disciplines: set[str], fields: dict[str, str]
 def check_template_lists(rules: list[dict], disciplines: set[str], fields: dict[str, str], text: str) -> None:
     by_id = {r["id"]: r for r in rules if "id" in r}
     named = set(re.findall(r"`([a-z][a-z0-9]*(?:_[a-z0-9]+)+)`", text))
-    keys = set(fields) | {"rehab_case"} | set(re.findall(r"Section name: `([a-z_]+)`", text))
+    keys = set(fields) | {"rehab_case"} | set(re.findall(r"Section name: `([a-z0-9_]+)`", text))
+    keys |= set(re.findall(r"^- ([a-z0-9_]+):", text, re.M))  # inline field names
+    keys |= {c.get("id") for c in parse_rules(CAPABILITIES.read_text(), "capabilities.md")}
     tools = {n for n in named if n.startswith("icu_")}
     for n in sorted(named - set(by_id) - keys - tools):
         err(f"DOSSIER.template.md: names unknown rule {n}")
@@ -214,8 +220,21 @@ def check_capabilities(rules: list[dict], rules_text: str) -> None:
         err(f"capabilities.md: duplicate id {i}")
     by_id = {c["id"]: c for c in caps if "id" in c}
     manual_section = text.split("## Manual provider", 1)[-1]
-    prompts = set(re.findall(r"^#### ([a-z_]+)\s*$", manual_section, re.M))
-    required = {c for r in rules for c in (r.get("requires") or [])}
+    prompts = set(re.findall(r"^#### ([a-z0-9_]+)\s*$", manual_section, re.M))
+    def entries(req):
+        """Yield (alternatives, raw) for each requires: entry."""
+        for e in req:
+            if isinstance(e, str):
+                yield [e], e
+            elif isinstance(e, dict) and set(e) == {"any_of"} and isinstance(e["any_of"], list) \
+                    and len(e["any_of"]) >= 2 and all(isinstance(x, str) for x in e["any_of"]):
+                yield e["any_of"], e
+            else:
+                yield None, e
+
+    required = {c for r in rules if isinstance(r.get("requires"), list)
+                for alts, _ in entries(r["requires"]) if alts for c in alts}
+    required |= {m for r in rules for m in re.findall(r"\bcapability:([a-z0-9_]+)", str(r.get("activation", "")))}
     for c in caps:
         cid = c.get("id", "<no id>")
         for k in ("meaning", "semantics", "freshness", "providers"):
@@ -243,12 +262,20 @@ def check_capabilities(rules: list[dict], rules_text: str) -> None:
         if not isinstance(req, list) or not req:
             err(f"{r.get('id')}: requires: must be a non-empty list")
             continue
-        for c in req:
-            if c not in by_id:
-                err(f"{r.get('id')}: requires unknown capability {c!r}")
-            elif not by_id[c].get("providers"):
-                print(f"warning: {r.get('id')} requires {c}, which no provider supplies")
-    for m in re.finditer(r"\bicu_[a-z_]+", rules_text):
+        for alts, raw in entries(req):
+            if alts is None:
+                err(f"{r.get('id')}: requires: entry {raw!r} is neither a capability nor any_of: [two or more]")
+                continue
+            for c in alts:
+                if c not in by_id:
+                    err(f"{r.get('id')}: requires unknown capability {c!r}")
+            if all(c in by_id and not by_id[c].get("providers") for c in alts):
+                what = alts[0] if len(alts) == 1 else f"any_of {alts}"
+                print(f"warning: {r.get('id')} requires {what}, which no provider supplies")
+        for m in re.findall(r"\bcapability:([a-z0-9_]+)", str(r.get("activation", ""))):
+            if m not in by_id:
+                err(f"{r.get('id')}: activation names unknown capability {m!r}")
+    for m in re.finditer(r"\bicu_[a-z0-9_]+", rules_text):
         err(f"RULES.md names MCP tool {m.group(0)!r}; reference a capability instead")
 
 

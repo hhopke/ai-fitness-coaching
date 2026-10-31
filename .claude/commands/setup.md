@@ -8,6 +8,14 @@ argument-hint: "[--section <name>]"
 Builds `DOSSIER.md` from `DOSSIER.template.md`. Read `CLAUDE.md` first —
 the data ownership section governs everything below.
 
+**This is the `intervals-icu` provider's setup.** Rules and the `training`
+skill reach data only through capabilities (`capabilities.md`) and never
+name tools. This command is the one place outside `capabilities.md` that
+calls intervals.icu tools by name, because its job is to configure that
+provider: resolve the athlete, confirm what the platform holds, and record
+which capabilities the athlete supplies elsewhere. A fork that adds a
+provider adds its own setup alongside this one.
+
 Arguments: `$ARGUMENTS`
 
 ## Ground rules
@@ -42,6 +50,8 @@ stop and say the server is not connected; do not continue from memory.
 | `icu_list_athletes` | only if the athlete does not know their id: list reachable athletes so they can pick. Never pick for them |
 | `icu_get_sport_settings` | thresholds and zones per sport — the only source for them |
 | `icu_get_activities_by_date` | sports present and rough weekly volume over the last 12 weeks |
+| `icu_get_calendar_events` | upcoming race events, if the athlete keeps events in intervals.icu — shown for confirmation, not stored |
+| `icu_search_activities` | CP/FTP test activities under the athlete's test tag — shown for confirmation, not stored |
 
 Pass `athlete_id` from the dossier on every call. Do not take thresholds from
 the profile's FTP fields or from the curve tools (`CLAUDE.md`, data
@@ -96,6 +106,19 @@ confirmation only. For each threshold ask: how was it set (test type), when,
 under what protocol? Record that provenance in the Threshold provenance
 section. Do not record the number.
 
+Then two declarations that supply capabilities:
+
+- **Test tag (`cp_test`).** Does the athlete log CP/FTP tests in
+  intervals.icu, and under what tag? If so, record the tag, and show the
+  matching activities from `icu_search_activities` for confirmation. The
+  protocol recorded above is the protocol those tests are read under; a tag
+  without a protocol is not recorded.
+- **LT1 (`lt1_boundary`).** Was LT1 established by a test, and which
+  configured zone edge was set to it? Record sport, zone edge, test, and
+  date. Never the value. If no test established it, leave the line empty and
+  say so: a default zone edge is not LT1, and `tid_flexible` will report LT1
+  as not established.
+
 ### 4. Discrepancies
 
 If the athlete states a threshold that differs from the platform value, say
@@ -126,7 +149,13 @@ One section at a time, in template order:
 
 - `goal` — longevity, performance, or both. If both, which leads: the
   leading one is the `goal` value, the other goes under secondary goal.
-- `events` — next event date, name, discipline.
+- `events` — where upcoming events are kept: `intervals-icu` or
+  `dossier`. Record it as `events_provider`, the same way strength logging
+  is recorded. If `intervals-icu`, show the race events from
+  `icu_get_calendar_events` (next 8 weeks) for confirmation and record no
+  dates. If `dossier`, record the next event's date, name and discipline,
+  or `none`. If the dossier still holds event dates while the provider is
+  `intervals-icu`, offer to remove them (single source per value).
 - `injury_history` — every injury that recurred or cost more than two
   weeks.
 - `bsi_history` — bone stress injuries.

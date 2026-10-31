@@ -1,4 +1,4 @@
-# RULES v0.6
+# RULES v0.7
 
 Full rules layer. Nothing is deleted; rules activate by tag.
 
@@ -9,9 +9,13 @@ activation:
   state:rehab         — loads only in rehab mode (see REHAB.md)
   dossier:<field>     — loads only when that dossier field is populated
   dossier:<field>=<v> — loads only when that dossier field holds value v
-  dossier:<field> within <N>d
-                      — loads only when the date in that dossier field is
-                        between today and N days from today
+  capability:<id> within <N>d
+                      — loads only when that capability (capabilities.md)
+                        yields a date between today and N days from today.
+                        Resolved after the capability is fetched. If the
+                        capability is absent in the run, the tag is
+                        unresolved: rules gated on it, positively or under
+                        NOT, do not load, and the gate is reported
   dormant             — retained, not currently reachable; reason stated
   AND / OR / NOT      — combine the above; NOT state:rehab means the rule
                         does not load while rehab mode is active
@@ -70,7 +74,9 @@ system decision and what is review finding, so the two never blur.
 `capabilities.md`, which defines each one and the provider that supplies it.
 A rule never names a data source or a tool. A rule with no `requires:` reads
 no data: it frames, prohibits or routes. Where a required capability is
-absent in a run, the rule's check is reported as not run.
+absent in a run, the rule's check is reported as not run. An entry
+`any_of: [a, b]` is met by any one of the listed capabilities; the output
+names which one was used.
 
 `resolution:` records a conflict between sources that was decided: which
 rule the conflict was in, what each source said, and what changed. A
@@ -1099,7 +1105,7 @@ section 4; neither is reopened here.
   activation: discipline:cycling AND NOT state:rehab
   type: HARD
   confidence: CONSENSUS
-  requires: [activity_log, vo2max]
+  requires: [activity_log, any_of: [vo2max, cp_test]]
   statement: >
     Non-response to a given dose is largely a dosing artefact. Prevalence
     fell 69% to 40% to 29% to 0% to 0% across 60/120/180/240/300 min/week,
@@ -1110,13 +1116,20 @@ section 4; neither is reopened here.
     more robust lever. Never label the athlete a non-responder, to a session
     type or in general, without having escalated dose first — and never
     present non-response as a fixed trait.
+  caveat: >
+    The dose-dependence finding (Montero & Lundby) was measured in VO2max.
+    CP is accepted as the response measure on the strength of the review's
+    planning recommendation — "VO2max/CP" in recommendation 3, "VO2max/power"
+    in the A5 planning implication, labelled PRACTITIONER→evidence-informed —
+    not of the dose-response data itself. A cp_test-based reading carries
+    that weaker footing and says so.
   source: 03-session-prescription.md A5, recommendation 3
 
 - id: plateau_order_of_operations
   activation: discipline:cycling AND NOT state:rehab
   type: HARD
   confidence: CONSENSUS on dose increase, CONTESTED on protocol switch, PRACTITIONER on deload
-  requires: [activity_log, planned_sessions, time_in_zone, mean_max_power, sport_thresholds, vo2max, measurement_error]
+  requires: [activity_log, planned_sessions, time_in_zone, mean_max_power, sport_thresholds, any_of: [vo2max, cp_test], measurement_error]
   statement: >
     On a flat response over a review period, work in this order and do not
     skip ahead:
@@ -1157,8 +1170,8 @@ section 4; neither is reopened here.
 
 ## 10. GOAL AND EVENT DEFAULTS
 
-Longevity defaults load on `dossier:goal=longevity`; taper rules on
-`dossier:event_date`. With no goal declared, none of the goal-gated rules
+Longevity defaults load on `dossier:goal=longevity`; taper rules on the
+`events` capability, whichever provider supplies it. With no goal declared, none of the goal-gated rules
 load and `goal_type_branch` asks instead. `tid_flexible` encodes `CLAUDE.md`
 position 2 and is gated only by endurance discipline, never by goal.
 `detraining_curve` is physiology and loads for every athlete.
@@ -1206,17 +1219,18 @@ position 2 and is gated only by endurance discipline, never by goal.
   source: 01-endurance.md 6.5, 6.6
 
 - id: no_taper_by_default
-  activation: dossier:goal=longevity AND NOT dossier:event_date within 21d
+  activation: dossier:goal=longevity AND NOT capability:events within 21d
   type: SOFT
   confidence: CONSENSUS
+  requires: [events]
   statement: Longevity-led training needs no taper or peak.
   source: 01-endurance.md 6.6
 
 - id: taper_when_event_present
-  activation: dossier:event_date within 21d
+  activation: capability:events within 21d
   type: SOFT
   confidence: CONSENSUS
-  requires: [activity_log]
+  requires: [activity_log, events]
   statement: >
     2 weeks, exponential fast-decay, volume cut 41-60%, intensity and
     frequency held. Expected gain ~2-3%.

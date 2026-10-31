@@ -129,14 +129,22 @@ Context:
 - Secondary goal:
 - Explicit non-goals (e.g. no racing, no volume PRs, no weight targets):
 
-## Events — `event_date`
+## Events — `events_provider`
 
-Section name: `events`. Next event: date (YYYY-MM-DD), name, discipline. Leave empty if none.
+Section name: `events`. Supplies the `events` capability
+(`capabilities.md`). Where upcoming events are kept: `intervals-icu` (races
+as calendar events, priority A, B or C) or `dossier`. One or the other: if
+events live in intervals.icu, no event dates are recorded here (single
+source per value).
 
-- event_date:
+- events_provider:
+- event_date: only when events_provider is `dossier` — next event: date
+  (YYYY-MM-DD), name, discipline. Write `none` if there is none.
 
-Within 21 days of the date, activates `taper_when_event_present` and
-suppresses `no_taper_by_default`. Outside that window, activates nothing.
+Within 21 days of an event, `taper_when_event_present` loads and
+`no_taper_by_default` does not. If the `events` capability is absent in a
+run — intervals.icu unreachable, or `dossier` with `event_date` left empty —
+neither loads, and the skill reports the gate as unresolved.
 
 ## Injury history — `injury_history`
 
@@ -209,6 +217,12 @@ an identical protocol, so the protocol is what matters here.
 - Run threshold (pace / LTHR): set by:  date:  protocol:
 - Swim threshold (CSS): set by:  date:  stroke, course:
 - Max HR, per sport: set by:  date:
+- Test activities in intervals.icu are tagged: (the tag, if CP/FTP tests
+  are logged there; with the protocol above it supplies `cp_test`)
+- LT1: sport:  configured zone edge (e.g. top of zone N):  established by
+  (test):  date:  — supplies `lt1_boundary`. Never the value, which is read
+  from that edge in sport settings. Leave empty if no test established it:
+  a default zone edge is not LT1.
 - Open discrepancies (athlete-stated vs platform; no numbers):
 
 ### Health flags

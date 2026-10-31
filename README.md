@@ -100,7 +100,7 @@ generically.
 
 ## Status
 
-Rules layer and workflow are written. `RULES.md` is at v0.6 — 74 rules, every
+Rules layer and workflow are written. `RULES.md` is at v0.7 — 74 rules, every
 one carrying `source:` back to a review section or `judgment_call:` naming the
 position as this repo's rather than a review finding.
 
@@ -136,17 +136,6 @@ Outstanding before first use:
 
 ## License
 
-Copyright (c) 2026 Heiko Kromminga. Split by content type:
-
-- **Code and structure** — under the [MIT License](LICENSE):
-  `.claude/skills/`, `.claude/commands/`, `.claude/agents/`, `tools/`,
-  `.github/`, `.gitignore`, and the file and rule-schema layout.
-- **Rules and documentation** — under
-  [CC BY 4.0](LICENSE-docs) ([summary](https://creativecommons.org/licenses/by/4.0/)):
-  `RULES.md`, `REHAB.md`, `CLAUDE.md`, `capabilities.md`,
-  `CONTRIBUTING.md`, this README, `DOSSIER.template.md`, `HANDOFF.md` and
-  `reviews/`.
-
-Quotations from cited works remain under their authors' terms and are not
-relicensed. In particular, `reviews/04-acsm-rt.md` quotes Currier et al.,
-Med Sci Sports Exerc 2026;58(4):851-872, which is licensed CC BY-NC-ND.
+[MIT](LICENSE), for the whole repository. Quoted and cited third-party
+material in `reviews/` remains under its original terms and is not
+relicensed.
