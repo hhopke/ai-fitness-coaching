@@ -71,6 +71,9 @@ REHAB.md governs when active and supersedes progression logic in RULES.md. Its
 constraints exist because rehab is where confident wrong advice does the most
 damage and where no data signal catches the error. Do not soften them, do not
 add a loading protocol, and do not let plan generation resume on a timer.
+Where a treating clinician leaves an activity to the athlete's judgment, the
+athlete sets the steps; the assistant reviews them against the stop
+conditions and never proposes them.
 
 ## Files
 

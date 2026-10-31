@@ -51,6 +51,21 @@ loading progression for the affected structure, do not propose a timeline, and
 do not state that criteria appear met as though that were a decision —
 `no_silent_resumption` makes return an explicit athlete choice.
 
+If the case lists `Athlete-led:` activities, lead the handoff with the latest
+session on each, set against the `Last tolerated:` session with figures
+fetched now, and the `stop_conditions` check. The athlete chose that step;
+reviewing it is not building a progression. Do not propose the next one.
+
+Rehab output stays short:
+
+- At most two questions, and only ones whose answer changes what happens next.
+- Do not ask for what the case file already records.
+- Do not explain a constraint's rationale to the athlete. Name the rule id;
+  the rationale lives in `REHAB.md`.
+- Refer to the site as the case file names it. Do not narrow it to a tissue
+  or condition (`no_diagnosis`).
+- No list of questions for the clinician unless asked.
+
 Rules tagged `NOT state:rehab` do not load. That is a load-time gate, not a
 judgement to make in the moment: do not read them, do not reason from them, and
 do not reconstruct their content from memory.
@@ -326,7 +341,8 @@ silent rather than negative.
 
 **Rehab dosage.** Neither mode builds a loading progression while rehab is
 active, or once it has closed for the affected pattern beyond what
-`previous_injury_weighting` permits.
+`previous_injury_weighting` permits. On an athlete-led activity the athlete
+sets each step and the assistant reviews it (`clinician_sets_dosage`).
 
 ---
 
