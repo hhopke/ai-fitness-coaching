@@ -81,6 +81,9 @@ DOSSIER.md           athlete declared context, the only source for goal,
                      created locally from DOSSIER.template.md
 DOSSIER.template.md  setup guide: each field states which rules it activates
 RULES.md             rules layer, activation tagged
+capabilities.md      contract between rules and data: each capability a
+                     rule may require, and the provider that supplies it
+CONTRIBUTING.md      rule, provider and capability conventions
 REHAB.md             rehab mode, governs when active
 private/rehab-case.md
                      the active rehab case and rehab state. Gitignored
@@ -114,7 +117,9 @@ rule whose provenance is unverifiable is not usable.
 
 ## Data
 
-Read via the intervals.icu MCP server. Athlete id in DOSSIER.md.
+Read via the intervals.icu MCP server and the athlete's own report, through
+the capabilities in capabilities.md. Rules name capabilities in `requires:`,
+never tools. Athlete id in DOSSIER.md.
 
 Do not build a normalisation layer, a metrics engine, or an impulse response
 model. intervals.icu computes CTL, ATL, TSB and ramp server side. Single
@@ -159,8 +164,8 @@ every output.
 
 Run `python tools/lint_rules.py` after any change to RULES.md,
 DOSSIER.template.md or tracked prose. It checks rule structure, activation
-tags against the template, confidence labels, the version bump, and the data
-ownership rule. CI runs it on every pull request. A literature figure that
+tags against the template, confidence labels, `requires:` against
+capabilities.md, the version bump, and the data ownership rule. CI runs it on every pull request. A literature figure that
 trips the ownership scan goes in `tools/lint_allowlist.txt` with its citation;
 a platform value is removed, never allowlisted.
 

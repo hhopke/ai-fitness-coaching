@@ -65,6 +65,8 @@ of its source. Read the verification status in
 | `DOSSIER.template.md` | Template for `DOSSIER.md` — copy it locally and fill it in |
 | `DOSSIER.md` | Athlete-declared context — sole source for goal, injury history, training age, events. **Gitignored** |
 | `RULES.md` | Rules layer, activation-tagged, cited back to `reviews/` |
+| `capabilities.md` | Contract between rules and data: each capability a rule may require, and its provider — intervals.icu or the athlete's own report |
+| `CONTRIBUTING.md` | Conventions for rules, providers and capabilities |
 | `REHAB.md` | Rehab mode — supersedes progression logic in `RULES.md` while active |
 | `private/rehab-case.md` | Active rehab case; rehab state is read from it. **Gitignored** — format in `REHAB.md` |
 | `.claude/skills/training/` | Workflow and output format — `daily` and `weekly` modes, invocable as `/training` |
@@ -76,9 +78,13 @@ of its source. Read the verification status in
 
 ## Data
 
-Read via the intervals.icu MCP server; athlete id lives in `DOSSIER.md`. No
-normalisation layer, metrics engine, or impulse-response model — intervals.icu
-computes CTL, ATL, TSB and ramp server-side.
+Rules read data through capabilities (`capabilities.md`), supplied by the
+intervals.icu MCP server or by the athlete's own report; athlete id lives in
+`DOSSIER.md`. Other platforms are best synced into intervals.icu; new
+providers live in forks (`CONTRIBUTING.md`).
+
+No normalisation layer, metrics engine, or impulse-response model —
+intervals.icu computes CTL, ATL, TSB and ramp server-side.
 
 Strength and climbing sessions may not be in intervals.icu. Where a rule needs
 absent data, say so. Absent data is absent, not zero.
@@ -94,7 +100,7 @@ generically.
 
 ## Status
 
-Rules layer and workflow are written. `RULES.md` is at v0.5.1 — 74 rules, every
+Rules layer and workflow are written. `RULES.md` is at v0.6 — 74 rules, every
 one carrying `source:` back to a review section or `judgment_call:` naming the
 position as this repo's rather than a review finding.
 
@@ -137,8 +143,9 @@ Copyright (c) 2026 Heiko Kromminga. Split by content type:
   `.github/`, `.gitignore`, and the file and rule-schema layout.
 - **Rules and documentation** — under
   [CC BY 4.0](LICENSE-docs) ([summary](https://creativecommons.org/licenses/by/4.0/)):
-  `RULES.md`, `REHAB.md`, `CLAUDE.md`, this README, `DOSSIER.template.md`,
-  `HANDOFF.md` and `reviews/`.
+  `RULES.md`, `REHAB.md`, `CLAUDE.md`, `capabilities.md`,
+  `CONTRIBUTING.md`, this README, `DOSSIER.template.md`, `HANDOFF.md` and
+  `reviews/`.
 
 Quotations from cited works remain under their authors' terms and are not
 relicensed. In particular, `reviews/04-acsm-rt.md` quotes Currier et al.,

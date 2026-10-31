@@ -1,4 +1,4 @@
-# RULES v0.5.1
+# RULES v0.6
 
 Full rules layer. Nothing is deleted; rules activate by tag.
 
@@ -66,6 +66,12 @@ supply: a type promoted beyond its evidence, a threshold chosen for
 enforcement, or a taxonomy built on top of the findings. It names what is
 system decision and what is review finding, so the two never blur.
 
+`requires:` lists the capabilities a rule reads, by name from
+`capabilities.md`, which defines each one and the provider that supplies it.
+A rule never names a data source or a tool. A rule with no `requires:` reads
+no data: it frames, prohibits or routes. Where a required capability is
+absent in a run, the rule's check is reported as not run.
+
 `resolution:` records a conflict between sources that was decided: which
 rule the conflict was in, what each source said, and what changed. A
 `contradicted_by:` field marks a conflict that is recorded but not yet
@@ -99,6 +105,7 @@ decided; it is removed when a `resolution:` replaces it.
   activation: always
   type: HARD
   confidence: CONSENSUS
+  requires: [fitness_load, activity_log, finger_sessions, strength_minutes]
   statement: >
     Three axes are tracked separately and never collapsed into one number
     for decision purposes:
@@ -155,6 +162,7 @@ decided; it is removed when a `resolution:` replaces it.
   activation: always
   type: HARD
   confidence: CONSENSUS
+  requires: [strength_minutes]
   statement: >
     Dose to the injury-prevention target, not the mortality minimum.
     ~30-60 min/week captures most of the mortality benefit: J-shaped
@@ -193,6 +201,7 @@ decided; it is removed when a `resolution:` replaces it.
   activation: discipline:climbing AND discipline:strength
   type: HARD
   confidence: CONTESTED (novel synthesis, no quantifying study)
+  requires: [finger_sessions, strength_content]
   statement: >
     Hard bouldering is a near-maximal finger and pulling stimulus.
       COUNT IT toward: finger load, pulling/upper-limb pull strength.
@@ -215,6 +224,7 @@ decided; it is removed when a `resolution:` replaces it.
   activation: discipline:cycling AND discipline:climbing
   type: SOFT
   confidence: CONSENSUS on rationale, CONTESTED on prevention magnitude
+  requires: [strength_content]
   statement: >
     Prioritise what climbing does not train and what cycling loads
     repetitively:
@@ -425,6 +435,7 @@ section sets what goes in the session. It does not restate the dose target.
   activation: discipline:strength
   type: SOFT
   confidence: CONSENSUS
+  requires: [lift_loads, strength_minutes]
   statement: >
     Low volume preserves and can still build strength. Minimum effective
     training dose for 1RM in trained lifters is ~3-6 working sets per week
@@ -504,6 +515,7 @@ section sets what goes in the session. It does not restate the dose target.
   activation: discipline:climbing
   type: HARD
   confidence: PRACTITIONER (mechanistically grounded)
+  requires: [finger_sessions]
   statement: >
     At least 48 h between hard finger sessions, counting bouldering and
     hangboard as the same category. Collagen synthesis stays elevated ~72 h
@@ -515,6 +527,7 @@ section sets what goes in the session. It does not restate the dose target.
   activation: discipline:climbing
   type: HARD
   confidence: CONTESTED
+  requires: [finger_sessions, planned_sessions]
   statement: >
     Structured finger training is added by displacing climbing finger
     volume, never by stacking on top of it. The dominant injury mechanism is
@@ -541,6 +554,7 @@ section sets what goes in the session. It does not restate the dose target.
   activation: discipline:climbing
   type: SOFT
   confidence: CONSENSUS
+  requires: [finger_sessions]
   statement: >
     Crimp grip is an identified risk factor. Force on A2 rises ~31.5x and
     A4 ~3.9x versus open-hand. Recreational finger-flexor force can exceed
@@ -552,6 +566,7 @@ section sets what goes in the session. It does not restate the dose target.
   activation: discipline:climbing
   type: HARD
   confidence: CONSENSUS
+  requires: [pain_report]
   statement: >
     Previous injury and climbing while in pain are the strongest modifiable
     risk markers in the climbing literature. Climbing in pain is a stop
@@ -576,6 +591,7 @@ section sets what goes in the session. It does not restate the dose target.
   activation: discipline:cycling
   type: SOFT
   confidence: CONSENSUS
+  requires: [activity_log, fitness_load]
   statement: >
     Power-based cycling load is the most trustworthy dose index available.
     Weight it highest for systemic load; weight climbing and running data
@@ -586,6 +602,7 @@ section sets what goes in the session. It does not restate the dose target.
   activation: discipline:cycling
   type: SOFT
   confidence: CONSENSUS
+  requires: [activity_log]
   statement: >
     Anterior knee pain and patellar/quadriceps tendinopathy dominate cycling
     overuse and cause the greatest time loss. Volume spikes are a named
@@ -609,6 +626,7 @@ section sets what goes in the session. It does not restate the dose target.
   activation: discipline:cycling
   type: DISCLOSURE
   confidence: CONSENSUS
+  requires: [sport_thresholds]
   statement: Only compare CP/W' values obtained under an identical protocol.
   source: 01-endurance.md 3.1
 ```
@@ -624,6 +642,7 @@ quality session, not how many of the week's hours are hard.
   activation: discipline:cycling AND NOT state:rehab
   type: SOFT
   confidence: CONTESTED
+  requires: [sport_thresholds]
   statement: >
     Default to short on-off intervals (30/15 or 40/20, series format) over
     effort-matched long intervals for a VO2max block. In well-trained
@@ -694,6 +713,7 @@ quality session, not how many of the week's hours are hard.
   activation: discipline:cycling AND NOT state:rehab
   type: SOFT
   confidence: CONSENSUS
+  requires: [activity_log, planned_sessions, time_in_zone]
   statement: >
     Two quality sessions per week is the default. A third gives no clear
     additional VO2max benefit in recreational athletes, with the largest
@@ -719,6 +739,7 @@ quality session, not how many of the week's hours are hard.
   activation: discipline:cycling
   type: HARD
   confidence: CONSENSUS
+  requires: [sport_thresholds]
   statement: >
     Anchor efforts shorter than ~2-3 min to power with RPE as live override.
     Never anchor them to heart rate: HR takes 30-60 s to stabilise and is a
@@ -739,6 +760,7 @@ quality session, not how many of the week's hours are hard.
   activation: discipline:cycling
   type: SOFT
   confidence: CONSENSUS for exhaustion prediction under tested conditions
+  requires: [sport_thresholds]
   statement: >
     W'-balance is validated for predicting exhaustion in intermittent efforts
     and has been used to build sessions that fully deplete W' (+5% CP over 4
@@ -814,6 +836,7 @@ quality session, not how many of the week's hours are hard.
   activation: discipline:cycling AND discipline:strength
   type: SOFT
   confidence: CONSENSUS
+  requires: [activity_log, planned_sessions, lift_loads]
   statement: >
     Strength and hypertrophy are largely preserved when endurance is <=3
     sessions/week and sessions are separated. Interference was found with
@@ -830,6 +853,7 @@ quality session, not how many of the week's hours are hard.
   activation: discipline:cycling AND discipline:strength
   type: SOFT
   confidence: CONSENSUS that separation matters, CONTESTED on order
+  requires: [planned_sessions, block_focus]
   statement: >
     Separation beats either order — both reviews agree, and intra-session
     sequence is not the leading driver of interference over blocks of 8 weeks
@@ -859,6 +883,7 @@ quality session, not how many of the week's hours are hard.
   activation: discipline:running
   type: HARD
   confidence: CONTESTED (strongest running injury datapoint)
+  requires: [activity_log]
   statement: >
     No single run above 110% of the longest run in the prior 30 days.
     >10-30% HRR 1.64; >30-100% HRR 1.52; >100% HRR 2.28.
@@ -882,6 +907,7 @@ quality session, not how many of the week's hours are hard.
   activation: discipline:running
   type: SOFT
   confidence: CONSENSUS
+  requires: [activity_log]
   statement: >
     Bone remodels over months; tendon stiffness adapts over 2-8 weeks with
     matrix maturation over months to years. Largely dormant at low run
@@ -896,6 +922,7 @@ quality session, not how many of the week's hours are hard.
   activation: always
   type: SOFT
   confidence: PRACTITIONER (mechanistic extrapolation, no injury-outcome data)
+  requires: [planned_sessions, activity_log, finger_sessions, strength_content]
   statement: >
     Each item applies only when the disciplines it names are in the dossier.
     - Never precede hard bouldering or max finger work with fatiguing
@@ -962,6 +989,7 @@ section 4; neither is reopened here.
   confidence: >
     CONSENSUS on load as the strength driver; CONTESTED on whether
     progression is needed at all
+  requires: [lift_loads]
   statement: >
     Where continued strength gains are the aim, the lever is load, progressed
     within the >=80% 1RM range. Strength is enhanced by load >=80% 1RM with a
@@ -1004,6 +1032,7 @@ section 4; neither is reopened here.
     CONSENSUS on load indifference and on failure not being required;
     CONTESTED on the volume threshold; no evidence for any exact RIR or RPE
     target
+  requires: [lift_loads]
   statement: >
     For hypertrophy, what progresses is volume and sufficient effort, not
     load. Load progression and repetition progression produce equivalent
@@ -1070,6 +1099,7 @@ section 4; neither is reopened here.
   activation: discipline:cycling AND NOT state:rehab
   type: HARD
   confidence: CONSENSUS
+  requires: [activity_log, vo2max]
   statement: >
     Non-response to a given dose is largely a dosing artefact. Prevalence
     fell 69% to 40% to 29% to 0% to 0% across 60/120/180/240/300 min/week,
@@ -1086,6 +1116,7 @@ section 4; neither is reopened here.
   activation: discipline:cycling AND NOT state:rehab
   type: HARD
   confidence: CONSENSUS on dose increase, CONTESTED on protocol switch, PRACTITIONER on deload
+  requires: [activity_log, planned_sessions, time_in_zone, mean_max_power, sport_thresholds, vo2max, measurement_error]
   statement: >
     On a flat response over a review period, work in this order and do not
     skip ahead:
@@ -1156,6 +1187,7 @@ position 2 and is gated only by endurance discipline, never by goal.
   activation: discipline:cycling OR discipline:running OR discipline:swimming
   type: SOFT
   confidence: CONTESTED
+  requires: [time_in_zone, sport_thresholds, lt1_boundary]
   statement: >
     Pyramidal-leaning default, ~75-80% below LT1. Do not optimise this axis;
     POL vs PYR meta-analyses are split.
@@ -1165,6 +1197,7 @@ position 2 and is gated only by endurance discipline, never by goal.
   activation: dossier:goal=longevity
   type: SOFT
   confidence: CONTESTED
+  requires: [activity_log]
   statement: >
     Do not ramp toward very high lifelong endurance volume (AF OR ~2.34;
     elevated CAC in older male masters athletes). State the counterweight:
@@ -1183,6 +1216,7 @@ position 2 and is gated only by endurance discipline, never by goal.
   activation: dossier:event_date within 21d
   type: SOFT
   confidence: CONSENSUS
+  requires: [activity_log]
   statement: >
     2 weeks, exponential fast-decay, volume cut 41-60%, intensity and
     frequency held. Expected gain ~2-3%.
@@ -1192,6 +1226,7 @@ position 2 and is gated only by endurance discipline, never by goal.
   activation: always
   type: SOFT
   confidence: CONSENSUS
+  requires: [activity_log]
   statement: >
     After a break assume near-linear VO2max loss from within days, up to
     -20% by 12 weeks. Rebuild against structural rules, not remembered
@@ -1237,6 +1272,7 @@ position 2 and is gated only by endurance discipline, never by goal.
   activation: dossier:injury_history
   type: HARD
   confidence: CONSENSUS
+  requires: [activity_log]
   statement: >
     Previous injury is the dominant predictor of recurrence in both running
     and climbing. Any listed site caps progression on the loading pattern
@@ -1256,6 +1292,7 @@ position 2 and is gated only by endurance discipline, never by goal.
   activation: dossier:fuelling_flag OR before load increase
   type: HARD
   confidence: CONSENSUS
+  requires: [fuelling_status, fitness_load]
   statement: >
     Low energy availability affects both sexes and substantially elevates
     bone stress injury risk. If intake is not keeping pace with rising load,
@@ -1284,6 +1321,7 @@ position 2 and is gated only by endurance discipline, never by goal.
   activation: dossier:sleep_logged
   type: SOFT
   confidence: CONSENSUS in adolescents, thin in adults
+  requires: [sleep_duration]
   statement: >
     Sustained sleep below ~7-8 h is a load-reduction signal, not a rest-day
     trigger on its own.

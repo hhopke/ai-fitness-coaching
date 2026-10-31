@@ -11,7 +11,12 @@ Checks:
   5. confidence: is present and uses only the allowed labels;
      "N/A (architectural)" and source_label: only with judgment_call:.
   6. RULES.md version is bumped whenever rule content changed against --base.
-  7. Data ownership: tracked files outside reviews/ contain no platform-owned
+  7. Capabilities: every requires: entry is defined in capabilities.md;
+     each capability is well formed, uses only the known providers, has a
+     manual prompt if manual supplies it, and is required by some rule
+     unless display_only. RULES.md names no MCP tool. Capabilities no
+     provider supplies are listed as warnings, with the rules needing them.
+  8. Data ownership: tracked files outside reviews/ contain no platform-owned
      values (CLAUDE.md, data ownership). Cited literature figures are
      allowlisted in tools/lint_allowlist.txt.
 
@@ -31,6 +36,8 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 RULES = ROOT / "RULES.md"
 TEMPLATE = ROOT / "DOSSIER.template.md"
+CAPABILITIES = ROOT / "capabilities.md"
+PROVIDERS = {"intervals-icu", "manual"}
 ALLOWLIST = ROOT / "tools" / "lint_allowlist.txt"
 
 ALLOWED_LABELS = {"CONSENSUS", "CONTESTED", "PRACTITIONER", "NO EVIDENCE"}
@@ -199,6 +206,52 @@ def check_template_lists(rules: list[dict], disciplines: set[str], fields: dict[
                 err(f"DOSSIER.template.md: {r['id']} (dossier:{key}) not listed in the {key} section")
 
 
+def check_capabilities(rules: list[dict], rules_text: str) -> None:
+    text = CAPABILITIES.read_text()
+    caps = parse_rules(text, "capabilities.md")
+    ids = [c.get("id") for c in caps]
+    for i in {i for i in ids if ids.count(i) > 1}:
+        err(f"capabilities.md: duplicate id {i}")
+    by_id = {c["id"]: c for c in caps if "id" in c}
+    manual_section = text.split("## Manual provider", 1)[-1]
+    prompts = set(re.findall(r"^#### ([a-z_]+)\s*$", manual_section, re.M))
+    required = {c for r in rules for c in (r.get("requires") or [])}
+    for c in caps:
+        cid = c.get("id", "<no id>")
+        for k in ("meaning", "semantics", "freshness", "providers"):
+            if k not in c:
+                err(f"capabilities.md: {cid}: missing {k}:")
+        prov = c.get("providers") or {}
+        if not isinstance(prov, dict):
+            err(f"capabilities.md: {cid}: providers: must be a mapping")
+            continue
+        for name in set(prov) - PROVIDERS:
+            err(f"capabilities.md: {cid}: unknown provider {name!r} (known: {sorted(PROVIDERS)})")
+        tools = prov.get("intervals-icu")
+        if tools is not None and (not isinstance(tools, list) or not all(str(t).startswith("icu_") for t in tools)):
+            err(f"capabilities.md: {cid}: intervals-icu must list icu_* tool names")
+        if prov.get("manual") is True and cid not in prompts:
+            err(f"capabilities.md: {cid}: manual provider without a '#### {cid}' prompt")
+        if cid not in required and not c.get("display_only"):
+            err(f"capabilities.md: {cid}: required by no rule and not display_only")
+    for pr in sorted(prompts - {c["id"] for c in caps if (c.get("providers") or {}).get("manual") is True}):
+        err(f"capabilities.md: prompt '#### {pr}' for a capability manual does not supply")
+    for r in rules:
+        req = r.get("requires")
+        if req is None:
+            continue
+        if not isinstance(req, list) or not req:
+            err(f"{r.get('id')}: requires: must be a non-empty list")
+            continue
+        for c in req:
+            if c not in by_id:
+                err(f"{r.get('id')}: requires unknown capability {c!r}")
+            elif not by_id[c].get("providers"):
+                print(f"warning: {r.get('id')} requires {c}, which no provider supplies")
+    for m in re.finditer(r"\bicu_[a-z_]+", rules_text):
+        err(f"RULES.md names MCP tool {m.group(0)!r}; reference a capability instead")
+
+
 def version_of(text: str) -> tuple[int, ...] | None:
     m = re.match(r"# RULES v(\d+(?:\.\d+)*)", text)
     return tuple(int(x) for x in m.group(1).split(".")) if m else None
@@ -279,6 +332,7 @@ def main() -> int:
     disciplines, fields = parse_template(template_text)
     check_rules(rules, disciplines, fields)
     check_template_lists(rules, disciplines, fields, template_text)
+    check_capabilities(rules, rules_text)
     check_version(rules_text, rules, args.base)
     check_ownership(args.scan_reviews)
 

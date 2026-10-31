@@ -84,64 +84,65 @@ a gap by inferring from training data.
 
 ### 3. Data availability
 
-Establish, per axis, what data exists for this run:
+Data reaches the rules through capabilities. `capabilities.md` defines each
+one — meaning, units, freshness — and the provider that supplies it. Rules
+name capabilities in `requires:`, never tools; this skill does the same.
 
-| Axis | Source | Expect |
-| --- | --- | --- |
-| Systemic / cardiometabolic | intervals.icu | Present. Power-based cycling load is the most reliable — `bike_load_is_the_reliable_one` |
-| Finger / upper-limb mechanical | Not in intervals.icu | Absent. Ask. |
-| Lower-limb tendon / structural | Partial — cycling and running present, strength usually not | Ask for the strength part |
+Collect the `requires:` of every active rule, then resolve each capability
+through its providers:
+
+- **`intervals-icu`** — call the tools `capabilities.md` lists for it, with
+  `athlete_id` from the dossier passed explicitly on every call. If the
+  server is not connected, say so and stop; do not continue from memory.
+- **`manual`** — ask, using the protocol and prompts in `capabilities.md`.
+  That is the only place asking is defined; this file does not add prompts
+  of its own.
+- **No provider** (`providers: {}`) — the requiring rule's check is reported
+  as not run, naming the capability. Nothing stands in for it.
+
+Per axis (`separate_load_axes`):
+
+| Axis | Capabilities |
+| --- | --- |
+| Systemic / cardiometabolic | `fitness_load`, `activity_log` — power-based cycling load is the most reliable (`bike_load_is_the_reliable_one`) |
+| Finger / upper-limb mechanical | `finger_sessions` (manual) |
+| Lower-limb tendon / structural | `activity_log` for cycling and running; `strength_minutes`, `strength_content` |
 
 An axis no declared discipline feeds is not applicable for this athlete —
-report it as such, not as zero load (`separate_load_axes`).
-
-Fetch every platform value this run uses, in this run, with `athlete_id`
-from the dossier passed explicitly on every call (`CLAUDE.md`, data
-ownership). Tool names are as registered by the intervals.icu MCP server;
-the client adds its own prefix. If the tools are unavailable, say the server
-is not connected and stop — do not continue from memory.
-
-| Value | Tool |
-| --- | --- |
-| CTL, ATL, TSB, ramp | `icu_get_fitness_summary`, or `icu_get_fitness_chart` for a window |
-| Activities and anything derived from them (volumes, longest run, days since a session) | `icu_get_activities_by_date` |
-| Wellness — HRV, sleep, resting HR, subjective scores | `icu_get_wellness_data` |
-| Thresholds and zones | `icu_get_sport_settings` only — never the profile's FTP fields, never the curve tools |
+report it as such, not as zero load.
 
 Values from memory, conversation history, earlier sessions or project
 context are never used, even when they look current. A value the dossier
 appears to hold for a platform-owned quantity is not used either; report it
-as a data-ownership violation.
+as a data-ownership violation. Do not recompute `fitness_load`, build a
+normalisation layer, or fit an impulse-response model. Single athlete,
+single source; the complexity is not earned.
 
-Do not recompute CTL, ATL, TSB or ramp, do not build a normalisation layer,
-and do not fit an impulse-response model. Single athlete, single source; the
-complexity is not earned.
-
-Where a rule needs data that is absent, **say so and ask**. Do not infer
-climbing load from a gap in the calendar, do not treat an unlogged strength
-session as zero minutes, and do not substitute a proxy. Absent data is absent,
-not zero.
+A capability that is absent stays absent (`capabilities.md`, contract):
+never inferred from a gap in the calendar, never zero, never replaced by a
+nearby metric.
 
 ### 4. Provenance block
 
 Every output of either mode opens with a data block. **An output without
 it is invalid** and is not shown; build the block and then the output.
 
-The block lists every value the output uses, the tool that supplied it, and
-when it was fetched. Data the platform does not hold is listed too, as
-`self-reported` (with what the athlete said, this session) or `absent`.
-Absent is absent, not zero: an absent row is never filled with an estimate.
+The block lists every value the output uses by capability, with the
+provider that supplied it and the fetch time. Manual rows quote the
+athlete's words. Capabilities a check needed and did not get are listed as
+absent, with the reason. Absent is absent, not zero: an absent row is never
+filled with an estimate.
 
 ```
 DATA — fetched <date> <time> <timezone>
-value                          source                                     fetched
-CTL / ATL / TSB / ramp         icu_get_fitness_summary                    <time>
-activities <oldest>..<newest>  icu_get_activities_by_date                 <time>
-<sport> threshold and zones    icu_get_sport_settings                     <time>
-HRV, sleep, last 7 days        icu_get_wellness_data                      <time>
-hard finger sessions           self-reported: "<athlete's words>"         this session
-climbing load                  absent — not in intervals.icu              —
-strength minutes, 28 days      absent — not logged, not asked yet         —
+capability        provider       value / scope                          fetched
+fitness_load      intervals-icu  CTL <n>, ATL <n>, TSB <n>, ramp <n>    <time>
+activity_log      intervals-icu  <oldest>..<newest>, <n> sessions       <time>
+sport_thresholds  intervals-icu  <sport>: <threshold>, zones            <time>
+sleep_duration    intervals-icu  last 7 nights: <values>                <time>
+finger_sessions   manual         "<athlete's words>"                    this session
+strength_minutes  —              absent: not logged, athlete unsure     —
+lt1_boundary      —              absent: no provider                    —
 ```
 
 The block shows the values themselves inline where the output relies on
@@ -154,17 +155,16 @@ violation.
 
 ### Reads
 
-1. Last 7-10 days of activities, plus CTL / ATL / TSB / ramp as reported.
-2. Wellness where logged — sleep, HRV, subjective. `sleep_as_modifier` is a
-   load-reduction signal, not a rest-day trigger on its own.
-3. If climbing is declared: **days since the last hard finger session**,
-   counting bouldering and
-   hangboard as one category. Not in intervals.icu. Ask, and if the answer is
-   unknown, say the finger-spacing check could not run rather than assuming it
-   passed.
-4. Pain or symptom report. Any positive answer routes to preflight step 1 —
-   `climbing_in_pain_flag` makes climbing in pain a stop condition, not a
-   tolerance to manage.
+1. `activity_log` for the last 7-10 days, and `fitness_load`.
+2. `sleep_duration` where logged; `hrv` only for display.
+   `sleep_as_modifier` is a load-reduction signal, not a rest-day trigger on
+   its own.
+3. If climbing is declared: `finger_sessions`, counting bouldering and
+   hangboard as one category. If it is absent, the finger-spacing check did
+   not run; say so rather than assuming it passed.
+4. `pain_report`, every session. Any positive answer routes to preflight
+   step 1 — `climbing_in_pain_flag` makes climbing in pain a stop condition,
+   not a tolerance to manage.
 
 ### Checks
 
@@ -207,11 +207,13 @@ here constrains today, do what you planned", that is the output.
 
 Everything daily reads, plus:
 
-1. A 28-day window of structured strength minutes. Usually not in
-   intervals.icu — ask. `strength_dose_target` cannot be enforced on absent
-   data, and an unlogged session is not a zero.
+1. `strength_minutes` over 28 days, and `strength_content`.
+   `strength_dose_target` cannot be enforced on an absent window.
 2. Session distribution across the three axes for the week under review.
-3. Planned or completed sessions with their days, for ordering checks.
+3. `planned_sessions` alongside `activity_log`, for ordering checks.
+4. Whatever else the active rules' `requires:` name — `time_in_zone` and
+   `sport_thresholds` for intensity distribution, `lift_loads` for strength
+   progression.
 
 ### Checks
 
@@ -232,11 +234,14 @@ applicable, the ones whose rules are not active for this dossier.
    and posterior chain untrained).
 4. **Ordering conflicts.** `session_ordering`, `finger_session_spacing`,
    `strength_cycling_same_day_order`. The last one resolves same-day order by
-   which adaptation the current block protects; if the block phase is not
-   established, ask rather than assigning an order.
+   which adaptation the current block protects (`block_focus`); if that is
+   absent, no order is assigned.
 5. **Intensity distribution**, for any endurance discipline. `tid_flexible` —
-   pyramidal-leaning default, ~75-80% below LT1. Display it. Do not optimise toward it and do not report
-   drift from it as an error; POL vs PYR meta-analyses are split.
+   pyramidal-leaning default, ~75-80% below LT1. Display it. Do not optimise
+   toward it and do not report drift from it as an error; POL vs PYR
+   meta-analyses are split. `lt1_boundary` has no provider: show
+   `time_in_zone` against the configured zones and say that which zone edge
+   is LT1 is not established.
 6. **Interval and progression rules**, where a cycling quality session is in
    the week — `two_quality_sessions_default`, `anchor_short_intervals_to_power`,
    `sweet_spot_is_time_efficiency`. `two_quality_sessions_default` is gated
@@ -250,15 +255,16 @@ context. It is read-only and has no MCP access, so it judges only what it is
 handed. Pass it, verbatim:
 
 1. the draft, including its provenance block;
-2. the raw output of every tool call the block cites — not a summary;
-3. every self-reported statement the block cites, in the athlete's words;
+2. for every `intervals-icu` row, the raw tool output — not a summary;
+3. for every `manual` row, the athlete's words;
 4. rehab state and the declared disciplines and goal, as read in preflight.
 
 It reads `CLAUDE.md`, `RULES.md` and `DOSSIER.md` itself and checks the draft
 against (a) the rules active for this dossier, (b) the seven `CLAUDE.md`
-evidence positions, and (c) data ownership — every number traceable to a
-tool output from this session or a self-report from this session. It returns
-violations by rule id.
+evidence positions, and (c) data ownership against `capabilities.md` —
+every number traceable to a provenance row whose capability fits the use,
+whose provider `capabilities.md` lists for that capability, and whose raw
+output from this session contains it. It returns violations by rule id.
 
 Revise the draft to resolve each violation, then run the reviewer once more
 on the revision. Anything still unresolved after that goes into the output
@@ -332,8 +338,9 @@ Applies to both modes.
 4. **Absent is stated, never filled.** A check that did not run is reported as
    not run. It is never silently dropped and never reported as passing.
 5. **Every number has a source.** The provenance block opens the output, and
-   every number in the output traces to a tool call in this session or a
-   self-report in this session. No value from memory or an earlier session.
+   every number in the output traces to a capability supplied in this
+   session by a provider `capabilities.md` lists for it. No value from
+   memory or an earlier session.
 6. **Judgment calls are marked.** Where a rule carries a `judgment_call:`
    field, output derived from it says the position is this repo's, not a review
    finding.
