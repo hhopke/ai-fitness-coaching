@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Local agent state
+.claude/settings.local.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Athlete data. Personal health information stays local: DOSSIER.md is
+# created from DOSSIER.template.md, and private/ holds the active rehab case
+# (see REHAB.md ACTIVE CASE). Neither is ever committed.
+DOSSIER.md
+private/
