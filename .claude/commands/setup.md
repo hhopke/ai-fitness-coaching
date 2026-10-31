@@ -1,12 +1,13 @@
 ---
-description: Build or update DOSSIER.md from DOSSIER.template.md by interview, using intervals.icu for what the platform knows
+description: Build or update DOSSIER.md from DOSSIER.template.md by guided interview, using intervals.icu for what the platform knows
 argument-hint: "[--section <name>]"
 ---
 
 # /setup
 
-Builds `DOSSIER.md` from `DOSSIER.template.md`. Read `CLAUDE.md` first —
-the data ownership section governs everything below.
+Builds `DOSSIER.md` from `DOSSIER.template.md` as a guided flow of seven
+sections. Read `CLAUDE.md` first — the data ownership section governs
+everything below.
 
 **This is the `intervals-icu` provider's setup.** Rules and the `training`
 skill reach data only through capabilities (`capabilities.md`) and never
@@ -26,16 +27,63 @@ Arguments: `$ARGUMENTS`
   `icu_update_wellness`. A discrepancy is reported, not fixed.
 - **Platform values are shown, never stored.** Thresholds, zones, load,
   volumes, wellness, and profile values the platform holds (date of birth,
-  sex, weight) appear in the conversation for confirmation and are then
+  sex, weight) appear in the question that needs them and are then
   discarded. The only platform identifier written to the dossier is
   `athlete_id`.
 - **Empty is a valid answer; never guess.** Do not fill a field from
-  training data, memory, earlier sessions or project context. If the athlete
-  does not answer, leave it empty. `none` is recorded only when they say
-  none.
+  training data, memory, earlier sessions or project context. `Don't know`
+  and `Skip` both leave the field empty. `none` is recorded only when the
+  athlete says none.
 - **Write only `DOSSIER.md`.** A current injury goes to
   `private/rehab-case.md` (format in `REHAB.md`), never to the dossier, and
-  only if the athlete wants it recorded.
+  only if the athlete wants it recorded. Both are gitignored, so setup does
+  not run `tools/lint_rules.py`.
+
+## What gets asked
+
+- **Only what something reads.** Every question below names its reader in
+  brackets — a rule's activation, a rule's caveat, a capability, or weekly
+  planning, which reads the dossier as context. The reader is for this
+  spec; the athlete never sees it. Do not add a question without one.
+- **Not what the platform shows.** A discipline with activities is logged in
+  intervals.icu; rides with power have a power source; HRV and sleep with
+  values sync. None of this is asked.
+- **Not what was already said.** If an earlier typed answer contains the
+  answer to a later question, confirm it (`Yes` / `Change`) instead of
+  asking again.
+
+## Interaction
+
+- **Every question uses `AskUserQuestion`.** One decision per question.
+  2–4 options, and `Don't know` and `Skip` are always two of them; the
+  tool's automatic Other option takes a typed answer. Up to four
+  independent questions of one section go in a single call; a follow-up
+  waits for the answer it depends on.
+- **Free text is the last resort** — only for descriptions, dates and exact
+  numbers that no option covers. First ask the deciding question with
+  options, then ask for the description in plain text only if the answer
+  calls for it, one thing per prompt. Candidates seen in the fetched data
+  (device names, activity names, dates) are offered as options first.
+  Ranges are fine where an exact figure is not needed.
+- **Questions stand alone.** The dialog may hide earlier text, so each
+  question carries what it needs: the platform value it asks about and the
+  tool it came from, or the recorded answer it asks to confirm. Platform
+  values appear only inside the question that needs them.
+- **Plain words.** A technical term is glossed in a few words on first use,
+  e.g. "threshold heart rate (FTHR): the heart rate you can hold for about
+  an hour". Never say which rule a field activates or why a question is
+  asked.
+- **Progress.** Every section, including section 1, opens with one line,
+  `Section N of 7 — <name>`. Every question header starts with `N/7` (at
+  most 12 characters, e.g. `3/7 Logging`).
+- **Quiet between questions.** No recaps, no "Noted: …". One line only when
+  an answer creates an action for the summary.
+- **Recorded answers: one confirmation per section.** When a section's
+  fields already hold answers, the first question lists them — `All
+  correct` / `Change some` — and only the fields the athlete picks are
+  asked. `Don't know` or `Skip` keeps them. When a new answer contradicts a
+  recorded line (e.g. a roles note naming a discipline just answered `No`),
+  that line is asked `Keep` / `Change` before saving.
 
 ## MCP tools
 
@@ -49,9 +97,11 @@ stop and say the server is not connected; do not continue from memory.
 | `icu_get_athlete_profile` | confirm `athlete_id` resolves; profile values (sex, date of birth, weight) for confirmation |
 | `icu_list_athletes` | only if the athlete does not know their id: list reachable athletes so they can pick. Never pick for them |
 | `icu_get_sport_settings` | thresholds and zones per sport — the only source for them |
-| `icu_get_activities_by_date` | sports present and rough weekly volume over the last 12 weeks |
+| `icu_get_activities_by_date` | sports present, rough weekly volume, overlapping activities, over the last 12 weeks; test activities in a stated window |
+| `icu_get_activity_details` | the recording device and data streams of a single activity (the list tool returns neither) |
+| `icu_get_wellness_data` | whether sleep reaches the platform: nights with a value over the last 28 days. Counts only, never the values |
 | `icu_get_calendar_events` | upcoming race events, if the athlete keeps events in intervals.icu — shown for confirmation, not stored |
-| `icu_search_activities` | CP/FTP test activities under the athlete's test tag — shown for confirmation, not stored |
+| `icu_search_activities` | CP/FTP test activities by tag or name — shown for confirmation, not stored |
 
 Pass `athlete_id` from the dossier on every call. Do not take thresholds from
 the profile's FTP fields or from the curve tools (`CLAUDE.md`, data
@@ -59,132 +109,234 @@ ownership, item 2).
 
 ## Sections
 
-`--section <name>` runs step 1 (to resolve the athlete) and then only the
-named section, followed by the summary. Names match the `Section name:`
-lines in the template:
+| # | Flow section | Template sections |
+| --- | --- | --- |
+| 1 | Disciplines | `disciplines` (the list), `training_age` |
+| 2 | Goal | `goal` |
+| 3 | Logging | `disciplines` (where each is logged), `data_sources`, `sleep` |
+| 4 | Thresholds | `thresholds` |
+| 5 | Events | `events` |
+| 6 | Health and injury | current injury, `injury_history`, `bsi_history`, `fuelling`, `health` |
+| 7 | Preferences | `preferences`, `disciplines` (scheduling) |
 
-`athlete_id`, `disciplines`, `goal`, `events`, `injury_history`,
+`athlete_id` is resolved before section 1 and is not counted.
+
+`--section <name>` resolves the athlete, then asks only the questions for
+that template section (names as in the `Section name:` lines of the
+template: `athlete_id`, `disciplines`, `goal`, `events`, `injury_history`,
 `bsi_history`, `fuelling`, `sleep`, `training_age`, `thresholds`, `health`,
-`data_sources`, `preferences`.
+`data_sources`, `preferences`), saves, and ends with the summary. Progress
+lines use the flow section number. An unknown name: list the valid ones and
+stop.
 
-An unknown name: list the valid ones and stop.
+## Saving and resuming
 
-## Idempotence
-
-- If `DOSSIER.md` does not exist, copy `DOSSIER.template.md` to it first.
-- If it exists, read it. For each section, show what is recorded and ask
-  whether it changed. Edit only the lines the athlete changes. A field they
+- **Create.** If `DOSSIER.md` does not exist, copy `DOSSIER.template.md` to
+  it first.
+- **Migrate.** If it exists but predates the current template, add the
+  missing fields and sections at their template position. A section whose
+  template key changed is replaced by the template's version, carrying over
+  every answer whose field still exists. An answer whose field the template
+  no longer has stays in the dossier as written; it is not asked about and
+  not deleted.
+- **Edit in place.** Change only the lines the athlete answers. A field they
   do not touch keeps its value; never rewrite the file wholesale.
-- If the existing dossier contains a platform-owned value (a threshold, a
-  volume, a wellness figure), point it out and offer to remove it. Remove it
-  only on confirmation.
+- **Save after each section.** Write the section's answers to `DOSSIER.md`
+  before the next section starts, and update the progress marker on the
+  line after the `# DOSSIER` heading:
+
+  `<!-- setup: done <comma-separated flow section numbers>; updated YYYY-MM-DD -->`
+
+  The marker is the only setup state; it holds no answers.
+- **Resume.** If the marker lists some sections but not all, the first
+  question offers `Resume at section N` or `Start from section 1`, plus
+  `Don't know` and `Skip` (both resume). Starting over keeps every recorded
+  answer.
+- **Platform values in the dossier.** If the existing dossier contains a
+  platform-owned value (a threshold, a volume, a wellness figure), ask in
+  the section it belongs to whether to remove it. Remove it only on
+  confirmation.
 
 ## Flow
 
-### 1. Athlete id
+### Welcome
 
-If the dossier has no `athlete_id`, ask for it. If the athlete does not know
-it, `icu_list_athletes` may be shown to help them find it. Call
-`icu_get_athlete_profile` with the id. If it does not resolve, say so and
-stop. Record the id only once it resolves.
+One short text message, no question: setup records what intervals.icu
+cannot know; seven sections, roughly 10 minutes; every question can be
+answered `Don't know` or `Skip`; progress is saved after each section. If
+the dossier already has answers, say they are kept and shown for
+confirmation.
 
-### 2. Fetch
+### Athlete id and fetch
 
-- `icu_get_athlete_profile` — profile.
-- `icu_get_sport_settings` — settings for every sport the athlete has.
+If the dossier has an `athlete_id`, call `icu_get_athlete_profile` with it.
+If it resolves, name the athlete in one line and continue. If the dossier
+has none, ask whether the athlete knows it (`I'll type it` / `Look it up`);
+`Look it up` shows the athletes from `icu_list_athletes` as a question for
+them to pick from. If no id resolves, say so and stop: every section after
+this needs the platform. Record the id only once it resolves.
+
+Then fetch once:
+
+- `icu_get_sport_settings` — every sport the athlete has.
 - `icu_get_activities_by_date` — `oldest` = 12 weeks ago, `newest` = today.
-  Summarise: sports present, and rough weekly volume per sport (sessions and
-  hours). Twelve weeks; say so if history is shorter.
+  Derive per activity type: sessions and rough weekly hours; activities
+  whose start times overlap (duplicate candidates). Say if history is
+  shorter than 12 weeks.
+- `icu_get_wellness_data` — `days_back` = 28. Derive only how many nights
+  have a sleep value.
 
-Note the fetch time. Everything below that shows a platform value names the
+Note the fetch time. Every question that shows a platform value names the
 tool it came from.
 
-### 3. Thresholds — `thresholds`
+### Section 1 of 7 — Disciplines
 
-Present each threshold and zone set from `icu_get_sport_settings` for
-confirmation only. For each threshold ask: how was it set (test type), when,
-under what protocol? Record that provenance in the Threshold provenance
-section. Do not record the number.
+- **Trained regularly** [`discipline:` activation]: one question per
+  discipline that the dossier lists or the activities show, plus climbing
+  and strength always. `Yes` / `No`. The question shows what the activities
+  show (sessions, rough hours per week, from `icu_get_activities_by_date`;
+  one or two sessions are described as such, not as volume) and what the
+  dossier records. For climbing and strength it says intervals.icu often
+  does not see them.
+  - Mapping: `Ride`, `VirtualRide`, `GravelRide`, `MountainBikeRide` →
+    cycling; `Run`, `TrailRun`, `VirtualRun` → running; `Swim`,
+    `OpenWaterSwim` → swimming; `RockClimbing` → climbing;
+    `WeightTraining` → strength. Other types are uncovered: no rules
+    (`README.md`, coverage), not asked about.
+- **Resistance-training years** [caveats of
+  `heavy_load_required_for_max_strength`,
+  `load_magnitude_over_exercise_identity`, `strength_progression_is_load`]:
+  ranges as options, Other for the exact figure.
+- **Profile** [CLAUDE.md data ownership]: one question showing sex, date
+  of birth and weight from `icu_get_athlete_profile` — `Correct` /
+  `Something is wrong`. A wrong value becomes a summary action (correct it
+  in intervals.icu); nothing is stored. If the tool returns no value for a
+  field, ask whether the profile has it: if yes, it is a provider gap,
+  listed in the summary, nothing stored; if no and the athlete gives it,
+  record it and say why.
 
-Then two declarations that supply capabilities:
+### Section 2 of 7 — Goal
 
-- **Test tag (`cp_test`).** Does the athlete log CP/FTP tests in
-  intervals.icu, and under what tag? If so, record the tag, and show the
-  matching activities from `icu_search_activities` for confirmation. The
-  protocol recorded above is the protocol those tests are read under; a tag
-  without a protocol is not recorded.
-- **LT1 (`lt1_boundary`).** Was LT1 established by a test, and which
-  configured zone edge was set to it? Record sport, zone edge, test, and
-  date. Never the value. If no test established it, leave the line empty and
-  say so: a default zone edge is not LT1, and `tid_flexible` will report LT1
-  as not established.
+- **Leading goal** [`goal` activation]: `Longevity` / `Performance`.
 
-### 4. Discrepancies
+### Section 3 of 7 — Logging
 
-If the athlete states a threshold that differs from the platform value, say
-so plainly, showing both and their sources. Do not judge whether the
-difference is material on the athlete's behalf, and do not resolve it
-silently. Recommend either a retest or updating the sport setting in
-intervals.icu themselves. Record the open discrepancy in the dossier without
-numbers (sport, which threshold, date flagged, recommendation). Never write
-to sport settings.
+- **Disciplines with no activities in the 12 weeks** [`strength_minutes`
+  manual provider; weekly planning]: where they are logged — `Not logged`
+  / `Another app` (named via Other). If not logged in intervals.icu: a
+  fixed weekday (`Yes` / `Varies`, day typed) and typical duration
+  (ranges). Disciplines with activities are not asked: they are logged in
+  intervals.icu.
+- **Duplicate candidates** [`activity_log`, `fitness_load`]: one question
+  per overlapping pair. It shows date, names, durations, and which data
+  each copy carries (power, HR) from `icu_get_activity_details` —
+  `Duplicates` / `Not duplicates`. If duplicates, the summary action is to
+  remove one copy in intervals.icu, naming the stream that copy would lose
+  if the two carry different data. Recorded under Data sources: duplicate
+  uploads occur, from which sources, date flagged.
+- **Sleep source** [`sleep_logged` activation]: only if sleep has values on
+  the platform. The question shows the night count from
+  `icu_get_wellness_data` and offers the device seen in recent activities
+  (from `icu_get_activity_details`) / `Another device or app`. Recorded as
+  that source, synced to intervals.icu. If sleep has no values: no
+  question, `sleep_logged` stays empty; data kept elsewhere reaches no rule
+  (`sleep_duration` has no manual provider). Low coverage (under half the
+  nights): one question — `Expected (not worn nightly)` / `Sync issue`; a
+  sync issue becomes a summary action.
 
-### 5. Disciplines — `disciplines`
+### Section 4 of 7 — Thresholds
 
-Map activity types from step 2 to the template's disciplines: `Ride`,
-`VirtualRide`, `GravelRide`, `MountainBikeRide` → cycling; `Run`,
-`TrailRun`, `VirtualRun` → running; `Swim`, `OpenWaterSwim` → swimming;
-`RockClimbing` → climbing; `WeightTraining` → strength. List any activity
-type that maps to none of them as uncovered — it gets no rules (`README.md`,
-coverage).
+Only for sports in the confirmed disciplines. For each threshold in
+`icu_get_sport_settings` (FTP or CP and W′, threshold pace, CSS, threshold
+HR, max HR), glossed on first use:
 
-Propose the derived list, then confirm it with the athlete. Ask explicitly
-about disciplines intervals.icu usually does not see — climbing and
-strength — and record where each is logged, or that it is self-reported.
-The volumes from step 2 are shown, not stored.
+- **Matches** [`cp_protocol_fixity`; summary action]: the question shows
+  the value and its tool — `Matches my last test` / `Differs` (the
+  athlete's figure via Other). If it differs, show both and their sources,
+  do not judge whether the difference matters, and make it a summary
+  action: retest, or update the sport setting in intervals.icu. Record the
+  open discrepancy without numbers (sport, threshold, date flagged).
+- **Set by** [`cp_protocol_fixity`]: max HR — `Race or hard effort` /
+  `Formula or estimate`; every other threshold — `Test` / `Estimate`. For a
+  test or effort: date (ranges, or the date if the athlete gave one) and
+  protocol. If the athlete does not recall the protocol, look for the
+  activity in the stated window (`icu_search_activities` by name,
+  `icu_get_activities_by_date` for the window) and offer the candidates
+  with their durations. Record test type, date and protocol. Never the
+  number.
 
-### 6. Interview — platform-unknowable fields
+Then:
 
-One section at a time, in template order:
+- **Test tag** [`cp_test`]: whether CP/FTP tests are tagged in intervals.icu
+  (`Yes`, tag via Other / `No`). If a tag is given, the next question shows
+  the matching activities from `icu_search_activities` — `These are my
+  tests` / `Not right`. Record the tag only with a recorded protocol.
+- **LT1** [`lt1_boundary`]: whether a test established the first lactate
+  threshold (`Yes` / `No`). If yes, a question showing the sport's zones
+  from `icu_get_sport_settings` with two likely zone edges as options
+  (Other for another), then test and date. Record sport, zone edge, test
+  and date — never the value. If no test established it, leave the line
+  empty: a default zone edge is not LT1.
 
-- `goal` — longevity, performance, or both. If both, which leads: the
-  leading one is the `goal` value, the other goes under secondary goal.
-- `events` — where upcoming events are kept: `intervals-icu` or
-  `dossier`. Record it as `events_provider`, the same way strength logging
-  is recorded. If `intervals-icu`, show the race events from
-  `icu_get_calendar_events` (next 8 weeks) for confirmation and record no
-  dates. If `dossier`, record the next event's date, name and discipline,
-  or `none`. If the dossier still holds event dates while the provider is
-  `intervals-icu`, offer to remove them (single source per value).
-- `injury_history` — every injury that recurred or cost more than two
-  weeks.
-- `bsi_history` — bone stress injuries.
-- `fuelling` — any history of restricting intake or training under-fuelled.
-- `sleep` — sleep source and logging reliability.
-- `training_age` — years per discipline, years of resistance training.
-  Age, sex and weight: confirm the profile values from step 2; record them
-  only if the profile lacks them.
-- `health`, `data_sources`, `preferences`, and scheduling constraints.
+### Section 5 of 7 — Events
 
-If the athlete mentions a current injury, say it belongs in
-`private/rehab-case.md` and offer to record it there.
+- **Where events are kept** [`events` capability]: `intervals.icu` / `This
+  dossier`. Record it as `events_provider`.
+- `intervals.icu`: one question showing the race events for the next 8
+  weeks from `icu_get_calendar_events` — `Complete` / `Something missing`.
+  Missing becomes a summary action (add it in intervals.icu). Record no
+  dates. If the dossier still holds event dates, ask whether to remove them
+  (single source per value).
+- `This dossier`: `None planned` / `I have one`; if one, date, name and
+  discipline in plain text. Record `none` only on `None planned`.
 
-### 7. What each field activates
+### Section 6 of 7 — Health and injury
 
-For each activating field, state which rules it switches on. Derive this
-at run time from the `activation:` tags in `RULES.md` — do not rely on the
-lists in the template, which can lag. Name each rule with its type and
-confidence label.
+- **Current injury** [`rehab_mode_supersedes`]: `Yes` / `No`. If
+  `private/rehab-case.md` exists, the question names its case and state.
+  Setup does not edit or close it (the athlete's decision, `REHAB.md`). A
+  new current injury is not recorded in the dossier: say it belongs in
+  `private/rehab-case.md` and offer to record it there.
+- **Injury history** [`previous_injury_weighting`]: any injury that
+  recurred or cost more than two weeks (`Yes` / `None`). If yes, per
+  injury: site, year, the load pattern that caused it, whether it recurred.
+- **Bone stress injury** [`bsi_history_pathway`]: `Yes` / `None`. If yes,
+  site, grade if known, year, management.
+- **Fuelling** [`underfuelling_check`]: any history of restricting intake or
+  training under-fuelled (`Yes` / `No`). If yes, a brief description.
+- **Health flags** [weekly planning]: one question — any cardiac finding,
+  medication affecting heart rate, or other reason for care with high
+  intensity (`None` / `Yes`), described in plain text only on `Yes`. A
+  current injury already given is not asked again here.
 
-### 8. Summary
+### Section 7 of 7 — Preferences
 
-End with:
+All read by weekly planning.
 
-- **Active** — rules now active, grouped by the field or discipline that
-  activates them, plus the rules that load for every athlete.
-- **Gated** — rules still inert, each with the field that would unlock it.
-  Empty HARD-rule gates (`bsi_history`, `fuelling_flag`) first.
-- **Discrepancies** — unresolved threshold discrepancies, with the
-  recommendation made.
-- **Not stored** — a one-line reminder that thresholds, volumes and profile
-  values were confirmed but not written, and are fetched each session.
+- **Fixed rest days**: `None fixed` / `Yes`, days typed.
+- **Hard scheduling constraints** (fixed days, travel, family): `None` /
+  `Yes`, typed. Confirm, don't re-ask, a fixed day given in section 3.
+- **Sessions refused regardless of data**: `None` / `Yes`, typed.
+
+### Summary
+
+Once, at the end, written for the athlete. No rule ids unless asked.
+
+1. **To do** — every action on the athlete's side, one line each: profile
+   corrections, provider gaps, duplicates, threshold discrepancies, retests,
+   events to add, sync issues.
+2. **What the assistant can't do yet** — derived at run time from the
+   `activation:` and `requires:` tags in `RULES.md` and the providers in
+   `capabilities.md`, not from the template's lists. In plain words, one
+   line each, with what would change it. Example: "Can't compare FTP tests
+   over time — tag your test activities." A line that states what a rule
+   says carries the rule's confidence label (CLAUDE.md position 7). A check
+   whose data is asked in each training session (a manual provider) is not
+   listed here.
+3. **Recorded** — one line per section.
+4. One closing line: the number of rules now active, and that the full list
+   (ids, type, confidence labels) is available on request.
+
+Thresholds, volumes and profile values were confirmed but not written; they
+are fetched each session. Say so in one line only if the athlete asks what
+was stored.

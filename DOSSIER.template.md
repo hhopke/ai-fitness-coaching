@@ -105,14 +105,12 @@ week (sessions, hours) may be recorded, because the platform cannot know it.
 
 Scheduling (context):
 
-- Total weekly hours available:
 - Hard scheduling constraints (fixed days, travel, family):
 
 ## Goal — `goal`
 
 Section name: `goal`. The leading goal: one of `longevity` or
-`performance`. If both matter, record the one that leads here and the other
-under secondary goal.
+`performance`. If both matter, record the one that leads.
 
 - goal:
 
@@ -123,11 +121,6 @@ under secondary goal.
   rules exist; see the coverage section of `README.md`.
 - **empty** — activates `goal_type_branch`: the assistant asks before any
   recommendation that depends on goal, and does not default to longevity.
-
-Context:
-
-- Secondary goal:
-- Explicit non-goals (e.g. no racing, no volume PRs, no weight targets):
 
 ## Events — `events_provider`
 
@@ -200,7 +193,6 @@ Section name: `training_age`. Age, sex and weight are read from the
 intervals.icu profile; record them here only if the profile does not carry
 them, and say so.
 
-- Years of consistent training, per discipline:
 - Years of consistent resistance training: (read by the caveats of
   `heavy_load_required_for_max_strength`,
   `load_magnitude_over_exercise_identity` and `strength_progression_is_load`,
@@ -229,20 +221,16 @@ an identical protocol, so the protocol is what matters here.
 
 Section name: `health`.
 
-- Known cardiac findings:
-- Medications affecting HR or HRV:
-- Anything a coach should know before prescribing high intensity:
+- Cardiac findings, medication affecting heart rate, or other reason for
+  care with high intensity:
 
 ### Data sources and their reliability
 
 Section name: `data_sources`. Which devices and logging habits produce the
 data — not the data.
 
-- Cycling power: yes/no, meter type (`anchor_short_intervals_to_power`
-  substitutes RPE and terrain, not HR, without one)
-- Running: GPS only / footpod / power
-- Swimming: manual entry / watch
-- HRV: source, morning protocol, consistency
+- Duplicate uploads: sources, date flagged (power and HR presence are read
+  from the activities, not recorded here)
 - Strength: logged where? If not in intervals.icu, `strength_dose_target`
   cannot be enforced automatically and weekly mode asks.
 - Climbing: logged where? No validated metric exists
@@ -255,4 +243,3 @@ Section name: `preferences`.
 
 - Days that are always rest:
 - Sessions I will not do regardless of what the data says:
-- How direct the coaching tone should be:
