@@ -84,6 +84,8 @@ RULES.md             rules layer, activation tagged
 capabilities.md      contract between rules and data: each capability a
                      rule may require, and the provider that supplies it
 CONTRIBUTING.md      rule, provider and capability conventions
+CHANGELOG.md         every RULES.md version, naming each rule added,
+                     removed or changed. Updated with every version bump
 REHAB.md             rehab mode, governs when active
 private/rehab-case.md
                      the active rehab case and rehab state. Gitignored
