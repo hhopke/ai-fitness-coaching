@@ -173,8 +173,10 @@ load increase. Empty is reported as an unanswered HARD-rule gate.
 
 ## Sleep — `sleep_logged`
 
-Section name: `sleep`. Sleep source and how reliably it is logged — not the
-sleep data, which is fetched. Leave empty if not logged.
+Section name: `sleep`. The sleep source (device or app), and that it syncs
+to intervals.icu — not the sleep data, which is fetched. How reliably it is
+logged is read from the platform each session, not recorded here. Leave
+empty if sleep does not reach intervals.icu: no rule can read it elsewhere.
 
 - sleep_logged:
 

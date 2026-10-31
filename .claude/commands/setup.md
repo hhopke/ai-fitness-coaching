@@ -36,8 +36,9 @@ Arguments: `$ARGUMENTS`
   athlete says none.
 - **Write only `DOSSIER.md`.** A current injury goes to
   `private/rehab-case.md` (format in `REHAB.md`), never to the dossier, and
-  only if the athlete wants it recorded. Both are gitignored, so setup does
-  not run `tools/lint_rules.py`.
+  only if the athlete wants it recorded. A setup run edits only these
+  gitignored files, so the run itself does not call `tools/lint_rules.py`.
+  Changes to this command file are tracked prose and are linted as usual.
 
 ## What gets asked
 
@@ -136,9 +137,11 @@ stop.
 - **Migrate.** If it exists but predates the current template, add the
   missing fields and sections at their template position. A section whose
   template key changed is replaced by the template's version, carrying over
-  every answer whose field still exists. An answer whose field the template
-  no longer has stays in the dossier as written; it is not asked about and
-  not deleted.
+  every answer whose field still exists. Where the template merged fields
+  (e.g. the three health lines into one), the old answers are combined into
+  the new field, verbatim and separated by semicolons, and shown in that
+  section's confirmation. An answer whose field the template removed stays
+  in the dossier as written; it is not asked about and not deleted.
 - **Edit in place.** Change only the lines the athlete answers. A field they
   do not touch keeps its value; never rewrite the file wholesale.
 - **Save after each section.** Write the section's answers to `DOSSIER.md`
@@ -162,7 +165,7 @@ stop.
 ### Welcome
 
 One short text message, no question: setup records what intervals.icu
-cannot know; seven sections, roughly 10 minutes; every question can be
+cannot know; seven sections, roughly 10 to 15 minutes; every question can be
 answered `Don't know` or `Skip`; progress is saved after each section. If
 the dossier already has answers, say they are kept and shown for
 confirmation.
@@ -228,7 +231,9 @@ tool it came from.
   (ranges). Disciplines with activities are not asked: they are logged in
   intervals.icu.
 - **Duplicate candidates** [`activity_log`, `fitness_load`]: one question
-  per overlapping pair. It shows date, names, durations, and which data
+  per overlapping pair, for the three most recent pairs. Further pairs are
+  not asked; the summary gives their count and dates under the same
+  action. It shows date, names, durations, and which data
   each copy carries (power, HR) from `icu_get_activity_details` —
   `Duplicates` / `Not duplicates`. If duplicates, the summary action is to
   remove one copy in intervals.icu, naming the stream that copy would lose
@@ -329,10 +334,11 @@ Once, at the end, written for the athlete. No rule ids unless asked.
    `activation:` and `requires:` tags in `RULES.md` and the providers in
    `capabilities.md`, not from the template's lists. In plain words, one
    line each, with what would change it. Example: "Can't compare FTP tests
-   over time — tag your test activities." A line that states what a rule
-   says carries the rule's confidence label (CLAUDE.md position 7). A check
-   whose data is asked in each training session (a manual provider) is not
-   listed here.
+   over time — tag your test activities." Label test (CLAUDE.md position
+   7): a line that paraphrases what a rule recommends or asserts carries
+   that rule's confidence label; a line that only names missing data or a
+   missing answer carries none. A check whose data is asked in each
+   training session (a manual provider) is not listed here.
 3. **Recorded** — one line per section.
 4. One closing line: the number of rules now active, and that the full list
    (ids, type, confidence labels) is available on request.
